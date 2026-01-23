@@ -1,0 +1,140 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id             String   @id @default(uuid())
+  email          String   @unique
+  emailVerified  Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  cvs                Cv[]
+  jobDescriptions    JobDescription[]
+  verificationCodes  EmailVerification[]
+
+  @@index([createdAt])
+}
+
+model EmailVerification {
+  id         String   @id @default(uuid())
+  userId     String
+  codeHash   String
+  expiresAt  DateTime
+  used       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([used])
+  @@index([createdAt])
+  @@index([userId, used, expiresAt])
+}
+
+model Cv {
+  id        String   @id @default(uuid())
+  userId    String
+  status    CvStatus
+  createdAt DateTime @default(now())
+
+  user     User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sections CvSection[]
+
+  @@index([userId])
+}
+
+enum CvStatus {
+  UPLOADED
+  PARSED
+  EVALUATED
+}
+
+model CvSection {
+  id     String @id @default(uuid())
+  cvId   String
+  type   CvSectionType
+  order  Int
+
+  cv     Cv @relation(fields: [cvId], references: [id], onDelete: Cascade)
+  chunks CvChunk[]
+
+  @@index([cvId])
+}
+
+enum CvSectionType {
+  SUMMARY
+  EXPERIENCE
+  PROJECTS
+  SKILLS
+  EDUCATION
+  ACTIVITIES
+}
+
+model CvChunk {
+  id        String   @id @default(uuid())
+  sectionId String
+  order     Int
+  content   String
+
+  // pgvector embedding
+  embedding Unsupported("vector(768)")
+
+  section CvSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@index([sectionId])
+}
+
+model JobDescription {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String?
+  createdAt DateTime @default(now())
+
+  user  User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rules JDRule[]
+
+  @@index([userId])
+}
+
+model JDRule {
+  id       String   @id @default(uuid())
+  jdId     String
+  ruleType RuleType
+  content  String
+
+  jd     JobDescription @relation(fields: [jdId], references: [id], onDelete: Cascade)
+  chunks JDRuleChunk[]
+
+  @@index([jdId])
+}
+
+model JDRuleChunk {
+  id      String @id @default(uuid())
+  ruleId  String
+  content String
+
+  // pgvector embedding
+  embedding Unsupported("vector(768)")
+
+  rule JDRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@index([ruleId])
+}
+
+enum RuleType {
+  MUST_HAVE
+  NICE_TO_HAVE
+  BEST_PRACTICE
+}
