@@ -11,7 +11,6 @@ import { ThrottlerModule } from '@nestjs/throttler'
 import { AuthModule } from './routes/auth/auth.module'
 import { AuthController } from './routes/auth/auth.controller'
 
-
 @Module({
   imports: [
     SharedModule,

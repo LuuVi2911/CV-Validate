@@ -16,8 +16,12 @@ datasource db {
 model User {
   id             String   @id @default(uuid())
   email          String   @unique
+  password       String
   emailVerified  Boolean  @default(false)
-  createdAt      DateTime @default(now())
+  refreshTokens               RefreshToken[]
+  deletedAt      DateTime?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
   cvs                Cv[]
   jobDescriptions    JobDescription[]
@@ -27,12 +31,13 @@ model User {
 }
 
 model EmailVerification {
-  id         String   @id @default(uuid())
+  id         String              @id @default(uuid())
   userId     String
   codeHash   String
+  type       VerificationCodeType
   expiresAt  DateTime
-  used       Boolean  @default(false)
-  createdAt  DateTime @default(now())
+  used       Boolean             @default(false)
+  createdAt  DateTime            @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -40,7 +45,14 @@ model EmailVerification {
   @@index([expiresAt])
   @@index([used])
   @@index([createdAt])
+  @@index([type])
+  @@index([userId, type, used, expiresAt])
   @@index([userId, used, expiresAt])
+}
+
+enum VerificationCodeType {
+  EMAIL_VERIFICATION
+  FORGOT_PASSWORD
 }
 
 model Cv {
@@ -137,4 +149,17 @@ enum RuleType {
   MUST_HAVE
   NICE_TO_HAVE
   BEST_PRACTICE
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([expiresAt])
+  @@index([createdAt])
 }

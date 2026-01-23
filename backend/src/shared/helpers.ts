@@ -18,3 +18,7 @@ export const generateRandomFilename = (filename: string) => {
   const ext = path.extname(filename)
   return `${uuidv4()}${ext}`
 }
+
+export function generateVerificationCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString()
+}

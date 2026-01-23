@@ -14,3 +14,7 @@ export const ConditionGuard = {
 } as const
 
 export type ConditionGuardType = (typeof ConditionGuard)[keyof typeof ConditionGuard]
+
+// Re-export VerificationCodeType from Prisma
+export { VerificationCodeType } from '../../generated/prisma/enums'
+export type { VerificationCodeType as VerificationCodeTypeType } from '../../generated/prisma/enums'
