@@ -13,6 +13,7 @@ export const ConditionGuard = {
   Or: 'or',
 } as const
 
+
 export type ConditionGuardType = (typeof ConditionGuard)[keyof typeof ConditionGuard]
 
 // Re-export VerificationCodeType from Prisma

@@ -9,7 +9,6 @@ import { HttpExceptionFilter } from 'src/shared/filter/http-exception.filter'
 import { ThrottlerBehindProxyGuard } from 'src/shared/guard/throttler-behind-proxy.guard.ts'
 import { ThrottlerModule } from '@nestjs/throttler'
 import { AuthModule } from './routes/auth/auth.module'
-import { AuthController } from './routes/auth/auth.controller'
 
 @Module({
   imports: [
@@ -30,7 +29,7 @@ import { AuthController } from './routes/auth/auth.controller'
     }),
     AuthModule,
   ],
-  controllers: [AppController, AuthController],
+  controllers: [AppController],
 
   providers: [
     AppService,

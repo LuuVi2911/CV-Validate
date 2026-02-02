@@ -8,13 +8,13 @@
  *
  * 🟢 You can import this file directly.
  */
-export type * from './models/User.js'
-export type * from './models/EmailVerification.js'
-export type * from './models/Cv.js'
-export type * from './models/CvSection.js'
-export type * from './models/CvChunk.js'
-export type * from './models/JobDescription.js'
-export type * from './models/JDRule.js'
-export type * from './models/JDRuleChunk.js'
-export type * from './models/RefreshToken.js'
-export type * from './commonInputTypes.js'
+export type * from './models/User'
+export type * from './models/EmailVerification'
+export type * from './models/Cv'
+export type * from './models/CvSection'
+export type * from './models/CvChunk'
+export type * from './models/JobDescription'
+export type * from './models/JDRule'
+export type * from './models/JDRuleChunk'
+export type * from './models/RefreshToken'
+export type * from './commonInputTypes'
