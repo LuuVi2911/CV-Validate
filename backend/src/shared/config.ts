@@ -20,6 +20,18 @@ const configSchema = z.object({
   GOOGLE_CLIENT_SECRET: z.string(),
   GOOGLE_REDIRECT_URI: z.string(),
   RESEND_API_KEY: z.string(),
+  // Evaluation configuration (optional with defaults)
+  GEMINI_API_KEY: z.string().optional(),
+  EMBEDDING_MODEL: z.string().default('text-embedding-004'),
+  EMBEDDING_DIM: z.coerce.number().int().default(768),
+  MATCH_TOP_K: z.coerce.number().int().default(5),
+  SIM_FLOOR: z.coerce.number().default(0.15),
+  SIM_LOW_THRESHOLD: z.coerce.number().default(0.4),
+  SIM_HIGH_THRESHOLD: z.coerce.number().default(0.75),
+  LLM_JUDGE_ENABLED: z
+    .string()
+    .transform((v) => v === 'true')
+    .default('false'),
 })
 
 const configServer = configSchema.safeParse(process.env)
