@@ -267,6 +267,43 @@ export function canUpgradePartialToFull(
 }
 
 // =============================================================================
+// OFFICIAL SEVERITY MAPPING
+// =============================================================================
+
+export type GapSeverity =
+  | 'CRITICAL_SKILL_GAP'
+  | 'MAJOR_GAP'
+  | 'MINOR_GAP'
+  | 'PARTIAL_MATCH_ADVISORY'
+  | 'ADVISORY'
+  | 'NONE'
+
+/**
+ * Official Severity Table:
+ * | Band         | MUST_HAVE            | NICE_TO_HAVE / BEST_PRACTICE |
+ * | :----------- | :------------------- | :--------------------------- |
+ * | NO_EVIDENCE  | CRITICAL_SKILL_GAP   | MINOR_GAP                    |
+ * | LOW          | CRITICAL_SKILL_GAP   | MINOR_GAP                    |
+ * | AMBIGUOUS    | PARTIAL_MATCH_ADVISORY| ADVISORY                     |
+ * | HIGH         | NONE                 | NONE                         |
+ */
+export function getGapSeverity(
+  band: SimilarityBand,
+  ruleType: 'MUST_HAVE' | 'NICE_TO_HAVE' | 'BEST_PRACTICE',
+): GapSeverity {
+  if (band === 'HIGH') return 'NONE'
+
+  if (ruleType === 'MUST_HAVE') {
+    if (band === 'AMBIGUOUS') return 'PARTIAL_MATCH_ADVISORY'
+    return 'CRITICAL_SKILL_GAP'
+  } else {
+    // NICE_TO_HAVE or BEST_PRACTICE
+    if (band === 'AMBIGUOUS') return 'ADVISORY'
+    return 'MINOR_GAP'
+  }
+}
+
+// =============================================================================
 // SQL HELPERS
 // =============================================================================
 

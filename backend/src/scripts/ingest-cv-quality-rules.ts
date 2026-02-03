@@ -34,9 +34,9 @@ async function bootstrap() {
 
     const buffer = fs.readFileSync(pdfPath)
 
-    // Rule set key and version should be stable and match your plan
+    // Rule set key and version - version derived from file modification date
     const ruleSetKey = 'cv-quality-student-fresher'
-    const version = '2026-02-03'
+    const version = new Date(fs.statSync(pdfPath).mtime).toISOString().slice(0, 10) // YYYY-MM-DD
 
     console.log(`Ingesting CV quality rules from PDF: ${pdfPath}`)
     console.log(`RuleSet key: ${ruleSetKey}, version: ${version}`)

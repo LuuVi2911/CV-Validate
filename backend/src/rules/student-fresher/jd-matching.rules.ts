@@ -29,7 +29,7 @@
  * =============================================================================
  */
 
-export const JD_MATCHING_RULE_SET_VERSION = 'student-fresher.jd-matching@2026-02-03'
+export const JD_MATCHING_RULE_SET_VERSION = `student-fresher.jd-matching@2026-02-03-v2`
 
 // =============================================================================
 // JD MATCHING RULE CATEGORIES (Reference only - actual rules extracted from JD)

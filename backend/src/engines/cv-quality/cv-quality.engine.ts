@@ -2,11 +2,11 @@ import { Injectable } from '@nestjs/common'
 import { CvRepo } from 'src/routes/cv/cv.repo'
 import type { CvQualityResultDTO, CvQualityFindingDTO } from 'src/routes/evaluation/evaluation.dto'
 import type { CvDecisionType, EvidenceType } from 'src/routes/evaluation/evaluation.model'
-import {
-  CV_STRUCTURAL_RULES,
-  CV_SEMANTIC_RULES,
-  CV_QUALITY_RULE_SET_VERSION,
-} from 'src/rules/student-fresher/cv-quality.rules'
+import { CV_STRUCTURAL_RULES, CV_QUALITY_RULE_SET_VERSION } from 'src/rules/student-fresher/cv-quality.rules'
+import envConfig from 'src/shared/config'
+import { PrismaService } from 'src/shared/services/prisma.service'
+import { SemanticEvaluator } from 'src/engines/semantic/semantic-evaluator'
+import type { CvSectionType, RuleSeverity, RuleType } from 'src/generated/prisma/enums'
 
 /**
  * CV Quality Engine
@@ -24,9 +24,19 @@ import {
  */
 @Injectable()
 export class CvQualityEngine {
-  constructor(private readonly cvRepo: CvRepo) {}
+  constructor(
+    private readonly cvRepo: CvRepo,
+    private readonly prisma: PrismaService,
+    private readonly semanticEvaluator: SemanticEvaluator,
+  ) {}
 
-  async evaluate(cvId: string): Promise<CvQualityResultDTO> {
+  async evaluate(
+    cvId: string,
+    options?: {
+      includeSemantic?: boolean
+      semanticRuleSetKey?: string
+    },
+  ): Promise<CvQualityResultDTO> {
     // Load CV with sections and chunks
     const cv = await this.cvRepo.findCvByIdWithSectionsAndChunks(cvId)
     if (!cv) {
@@ -42,9 +52,67 @@ export class CvQualityEngine {
       findings.push(result)
     }
 
-    // Note: SEMANTIC rules (CV_SEMANTIC_RULES) should be evaluated via SemanticEvaluator
-    // and merged with findings. For now, we skip them here as they require
-    // PDF-ingested rules and embedding comparison.
+    const includeSemantic = options?.includeSemantic ?? false
+    const semanticRuleSetKey = options?.semanticRuleSetKey ?? 'cv-quality-student-fresher'
+
+    if (includeSemantic) {
+      const semantic = await this.semanticEvaluator.evaluateCvQualityRules(cvId, semanticRuleSetKey, {
+        topK: envConfig.MATCH_TOP_K,
+        thresholds: {
+          floor: envConfig.SIM_FLOOR,
+          low: envConfig.SIM_LOW_THRESHOLD,
+          high: envConfig.SIM_HIGH_THRESHOLD,
+        },
+      })
+
+      // Load rule metadata for mapping category/severity deterministically
+      const ruleMeta = await this.prisma.ruleSet.findUnique({
+        where: { key: semanticRuleSetKey },
+        include: {
+          rules: {
+            select: {
+              ruleKey: true,
+              category: true,
+              severity: true,
+            },
+          },
+        },
+      })
+      const metaMap = new Map<string, { category: RuleType; severity: RuleSeverity }>()
+      for (const r of ruleMeta?.rules ?? []) {
+        metaMap.set(r.ruleKey, { category: r.category, severity: r.severity })
+      }
+
+      for (const r of semantic.results) {
+        const meta = metaMap.get(r.ruleKey)
+        const category: RuleType =
+          meta?.category ??
+          (r.ruleKey.includes('-MH-') ? 'MUST_HAVE' : r.ruleKey.includes('-NH-') ? 'NICE_TO_HAVE' : 'BEST_PRACTICE')
+        const severity: RuleSeverity =
+          meta?.severity ?? (category === 'MUST_HAVE' ? 'critical' : category === 'NICE_TO_HAVE' ? 'warning' : 'info')
+
+        const passed = r.result === 'FULL' || r.result === 'PARTIAL'
+        const best = r.bestMatch
+
+        const evidence: EvidenceType[] = best
+          ? [createChunkEvidence(cvId, best.sectionType, best.sectionId, best.cvChunkId, best.chunkOrder, best.snippet)]
+          : [createSectionEvidence(cvId, 'SUMMARY')]
+
+        const bestSim = best ? best.similarity.toFixed(2) : 'n/a'
+        const bestBand = best?.band ?? 'NO_EVIDENCE'
+
+        findings.push({
+          ruleId: r.ruleKey,
+          category: category as unknown as any,
+          passed,
+          severity: severity as unknown as any,
+          reason: passed
+            ? `Semantic evidence: ${r.result}${r.upgraded ? ' (upgraded)' : ''} (best ${bestSim}, ${bestBand})`
+            : `No sufficient semantic evidence (best ${bestSim}, ${bestBand})`,
+          evidence,
+        })
+      }
+    }
 
     // Separate findings by category
     const mustHaveViolations = findings.filter((f) => f.category === 'MUST_HAVE' && !f.passed)

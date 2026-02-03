@@ -8,6 +8,9 @@ export interface ExtractedRule {
   paragraphType: JDParagraphType
   ignored: boolean
   originalText: string
+  sourceParagraphType: JDParagraphType
+  sourceParagraphIndex: number
+  ignoredReason?: string
 }
 
 /**
@@ -15,38 +18,12 @@ export interface ExtractedRule {
  * Used for noise filtering - to ignore BENEFITS/COMPANY/PROCESS paragraphs
  */
 const PARAGRAPH_CLASSIFICATION_CUES = {
-  REQUIREMENTS: [
-    'must', 'required', 'minimum', 'you have', 'qualifications',
-    'requirements', 'essential', 'mandatory', 'you need', 'you should have',
-    'degree in', 'years of experience', 'proficient in', 'strong knowledge',
-  ],
-  RESPONSIBILITIES: [
-    'you will', 'responsibilities', 'role includes', 'contribute to',
-    'duties', 'you are responsible', 'your tasks', 'accountable for',
-    'work with', 'collaborate with', 'lead', 'manage', 'develop',
-  ],
-  NICE_TO_HAVE: [
-    'preferred', 'bonus', 'plus', 'nice to have', 'ideal',
-    'advantageous', 'desirable', 'would be a plus', 'familiarity with',
-    'exposure to', 'knowledge of', 'experience with',
-  ],
-  BENEFITS: [
-    'salary', 'benefits', 'healthcare', 'insurance', 'vacation',
-    'pto', 'paid time off', 'bonus', 'stock', 'equity', 'compensation',
-    'perks', '401k', 'retirement', 'dental', 'vision', 'medical',
-    'we offer', 'what we offer', 'what you get', 'package includes',
-  ],
-  COMPANY: [
-    'culture', 'inclusive', 'diversity', 'about us', 'who we are',
-    'our company', 'our mission', 'our values', 'founded in',
-    'headquartered', 'employees', 'our team', 'we believe',
-    'equal opportunity', 'eoe', 'employer', 'workplace',
-  ],
-  PROCESS: [
-    'deadline', 'recruitment process', 'apply by', 'application deadline',
-    'interview', 'screening', 'assessment', 'how to apply',
-    'next steps', 'contact us', 'questions', 'reach out',
-  ],
+  REQUIREMENTS: ['must', 'required', 'minimum', 'you have', 'qualifications', 'requirements'],
+  NICE_TO_HAVE: ['preferred', 'bonus', 'plus', 'nice to have', 'would be great'],
+  RESPONSIBILITIES: ['you will', 'responsibilities', 'role includes', 'in this role', 'you\'ll'],
+  BENEFITS: ['salary', 'benefits', 'wellness', 'lunch', 'healthcare', 'work-life'],
+  PROCESS: ['recruitment process', 'interview', 'apply', 'deadline', 'rolling basis'],
+  COMPANY: ['we are', 'about us', 'our culture', 'values', 'diversity', 'inclusion'],
 } as const
 
 /**
@@ -77,16 +54,18 @@ export class JdRuleExtractionService {
     const statements = this.splitIntoStatements(text)
 
     // Classify each statement into a rule type and paragraph type
-    return statements.map((statement) => {
-      const paragraphType = this.classifyParagraphType(statement)
-      const ignored = this.isIgnoredParagraphType(paragraphType)
+    return statements.map((statement, index) => {
+      const { type, ignored, reason } = this.classifyParagraph(statement)
 
       return {
         content: this.normalizeContent(statement),
-        ruleType: ignored ? RuleType.BEST_PRACTICE : this.classifyRuleType(statement),
-        paragraphType,
+        ruleType: this.mapParagraphToRuleType(type, statement),
+        paragraphType: type,
         ignored,
         originalText: statement,
+        sourceParagraphType: type,
+        sourceParagraphIndex: index,
+        ignoredReason: reason,
       }
     })
   }
@@ -99,52 +78,54 @@ export class JdRuleExtractionService {
   }
 
   /**
-   * Classify paragraph type for noise filtering
+   * Classify paragraph with deterministic cues
+   * Returns { type, ignored, reason }
    */
-  private classifyParagraphType(statement: string): JDParagraphType {
-    const lower = statement.toLowerCase()
+  classifyParagraph(text: string): { type: JDParagraphType; ignored: boolean; reason?: string } {
+    const lower = text.toLowerCase()
 
-    // Check each category in order of specificity
-    // Benefits/Company/Process should be checked first as they are noise
-    for (const phrase of PARAGRAPH_CLASSIFICATION_CUES.BENEFITS) {
-      if (lower.includes(phrase)) return JDParagraphType.BENEFITS
+    // Deterministic cues (classification-only)
+    if (this.hasCue(lower, PARAGRAPH_CLASSIFICATION_CUES.REQUIREMENTS)) {
+      return { type: JDParagraphType.REQUIREMENTS, ignored: false }
+    }
+    if (this.hasCue(lower, PARAGRAPH_CLASSIFICATION_CUES.NICE_TO_HAVE)) {
+      return { type: JDParagraphType.NICE_TO_HAVE, ignored: false }
+    }
+    if (this.hasCue(lower, PARAGRAPH_CLASSIFICATION_CUES.RESPONSIBILITIES)) {
+      return { type: JDParagraphType.RESPONSIBILITIES, ignored: false }
+    }
+    if (this.hasCue(lower, PARAGRAPH_CLASSIFICATION_CUES.BENEFITS)) {
+      return { type: JDParagraphType.BENEFITS, ignored: true, reason: 'BENEFITS paragraph ignored' }
+    }
+    if (this.hasCue(lower, PARAGRAPH_CLASSIFICATION_CUES.PROCESS)) {
+      return { type: JDParagraphType.PROCESS, ignored: true, reason: 'PROCESS paragraph ignored' }
+    }
+    if (this.hasCue(lower, PARAGRAPH_CLASSIFICATION_CUES.COMPANY)) {
+      return { type: JDParagraphType.COMPANY, ignored: true, reason: 'COMPANY paragraph ignored' }
     }
 
-    for (const phrase of PARAGRAPH_CLASSIFICATION_CUES.COMPANY) {
-      if (lower.includes(phrase)) return JDParagraphType.COMPANY
-    }
+    // Default: OTHER (modeled as UNKNOWN)
+    return { type: JDParagraphType.UNKNOWN, ignored: true, reason: 'OTHER paragraph ignored by default' }
+  }
 
-    for (const phrase of PARAGRAPH_CLASSIFICATION_CUES.PROCESS) {
-      if (lower.includes(phrase)) return JDParagraphType.PROCESS
-    }
-
-    // Now check the valid categories
-    for (const phrase of PARAGRAPH_CLASSIFICATION_CUES.REQUIREMENTS) {
-      if (lower.includes(phrase)) return JDParagraphType.REQUIREMENTS
-    }
-
-    for (const phrase of PARAGRAPH_CLASSIFICATION_CUES.RESPONSIBILITIES) {
-      if (lower.includes(phrase)) return JDParagraphType.RESPONSIBILITIES
-    }
-
-    for (const phrase of PARAGRAPH_CLASSIFICATION_CUES.NICE_TO_HAVE) {
-      if (lower.includes(phrase)) return JDParagraphType.NICE_TO_HAVE
-    }
-
-    // Default: unknown (will be kept, not ignored)
-    return JDParagraphType.UNKNOWN
+  private hasCue(text: string, cues: readonly string[]): boolean {
+    return cues.some((cue) => text.includes(cue))
   }
 
   /**
-   * Check if a paragraph type should be ignored
+   * Map paragraph type to JDRule.ruleType
    */
-  private isIgnoredParagraphType(paragraphType: JDParagraphType): boolean {
-    const ignoredTypes: JDParagraphType[] = [
-      JDParagraphType.BENEFITS,
-      JDParagraphType.COMPANY,
-      JDParagraphType.PROCESS,
-    ]
-    return ignoredTypes.includes(paragraphType)
+  private mapParagraphToRuleType(paragraphType: JDParagraphType, statement: string): RuleType {
+    switch (paragraphType) {
+      case JDParagraphType.REQUIREMENTS:
+        return RuleType.MUST_HAVE
+      case JDParagraphType.NICE_TO_HAVE:
+        return RuleType.NICE_TO_HAVE
+      case JDParagraphType.RESPONSIBILITIES:
+        return RuleType.BEST_PRACTICE
+      default:
+        return RuleType.BEST_PRACTICE
+    }
   }
 
   /**

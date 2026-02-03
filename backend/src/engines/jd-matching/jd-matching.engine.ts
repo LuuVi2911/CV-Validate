@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { CvRepo } from 'src/routes/cv/cv.repo'
 import { JdRepo } from 'src/routes/jd/jd.repo'
-import { VectorSearchService, type VectorMatchCandidate } from 'src/shared/services/vector-search.service'
+import type { VectorMatchCandidate } from 'src/shared/services/vector-search.service'
 import { GeminiJudgeService } from 'src/shared/services/gemini-judge.service'
 import type { JdMatchResultDTO, MatchTraceEntryDTO, GapDTO, SuggestionDTO } from 'src/routes/evaluation/evaluation.dto'
 import type {
@@ -23,6 +23,15 @@ import {
   GAP_SEVERITY,
   SUGGESTION_ACTION_TYPES,
 } from 'src/rules/student-fresher/jd-matching.rules'
+import { SemanticEvaluator } from 'src/engines/semantic/semantic-evaluator'
+import {
+  classifySimilarityBand,
+  aggregateRuleResult,
+  canUpgradePartialToFull,
+  getGapSeverity,
+  SimilarityBand,
+  SimilarityThresholds,
+} from 'src/engines/similarity/similarity.contract'
 
 /**
  * JD Matching Engine (Refactored for AMBIGUOUS-aware matching)
@@ -51,9 +60,9 @@ export class JdMatchingEngine {
   constructor(
     private readonly cvRepo: CvRepo,
     private readonly jdRepo: JdRepo,
-    private readonly vectorSearchService: VectorSearchService,
     private readonly geminiJudgeService: GeminiJudgeService,
-  ) {}
+    private readonly semanticEvaluator: SemanticEvaluator,
+  ) { }
 
   async evaluate(
     cvId: string,
@@ -69,16 +78,33 @@ export class JdMatchingEngine {
     // Load JD rules with chunks
     const jdRules = await this.jdRepo.findRulesByJdId(jdId)
 
-    // Collect all rule chunk IDs for batch matching
-    const allRuleChunkIds: string[] = []
-    for (const rule of jdRules) {
-      for (const chunk of rule.chunks) {
-        allRuleChunkIds.push(chunk.id)
+    // Stage 12: Semantic evaluation using DB embeddings (CvChunk ↔ JDRuleChunk)
+    // We then adapt the semantic evaluator candidates into the legacy matchResults map
+    // so the rest of the deterministic rule-level logic remains unchanged.
+    const semantic = await this.semanticEvaluator.evaluateJdRules(cvId, jdId, {
+      topK: config.topK,
+      thresholds: {
+        floor: config.simFloor,
+        low: config.simLowThreshold,
+        high: config.simHighThreshold,
+      },
+    })
+
+    const matchResults = new Map<string, VectorMatchCandidate[]>()
+    for (const ruleResult of semantic.results) {
+      for (const ce of ruleResult.chunkEvidence) {
+        matchResults.set(
+          ce.ruleChunkId,
+          ce.candidates.map((c) => ({
+            cvChunkId: c.cvChunkId,
+            sectionId: c.sectionId,
+            sectionType: c.sectionType,
+            content: c.content,
+            score: c.similarity,
+          })),
+        )
       }
     }
-
-    // Stage 12: Batch vector matching for all rule chunks
-    const matchResults = await this.vectorSearchService.findTopKMatchesBatch(allRuleChunkIds, cvId, config.topK)
 
     const matchTrace: MatchTraceEntryDTO[] = []
     const gaps: GapDTO[] = []
@@ -170,6 +196,12 @@ export class JdMatchingEngine {
       content?: string
     } | null = null
 
+    const thresholds: SimilarityThresholds = {
+      floor: config.simFloor,
+      low: config.simLowThreshold,
+      high: config.simHighThreshold,
+    }
+
     // Process each chunk to gather evidence
     for (const ruleChunk of rule.chunks) {
       const candidates = matchResults.get(ruleChunk.id) || []
@@ -182,7 +214,7 @@ export class JdMatchingEngine {
           sectionId: c.sectionId,
           sectionType: c.sectionType,
           score: c.score,
-          band: this.classifyBand(c.score, config) as SimilarityBandType,
+          band: classifySimilarityBand(c.score, thresholds) as SimilarityBandType,
           content: c.content,
         }))
 
@@ -225,12 +257,12 @@ export class JdMatchingEngine {
         })),
         bestCandidate: bestCandidate
           ? {
-              cvChunkId: bestCandidate.cvChunkId,
-              sectionId: bestCandidate.sectionId,
-              sectionType: bestCandidate.sectionType,
-              score: bestCandidate.score,
-              band: bestCandidate.band,
-            }
+            cvChunkId: bestCandidate.cvChunkId,
+            sectionId: bestCandidate.sectionId,
+            sectionType: bestCandidate.sectionType,
+            score: bestCandidate.score,
+            band: bestCandidate.band,
+          }
           : null,
         bandStatus: bestCandidate?.band || null,
         judgeUsed,
@@ -255,54 +287,48 @@ export class JdMatchingEngine {
     }
 
     // TASK 4: Rule-level decision
-    // A rule is: FULL if any chunk yields FULL, PARTIAL if no FULL but at least one PARTIAL, NONE otherwise
-    let matchStatus: MatchStatusType = 'NONE'
+    // Use SimilarityContract for conservative aggregation and section upgrades
+    const bands = chunkEvidence
+      .map((e) => e.bandStatus as SimilarityBand)
+      .filter((b): b is SimilarityBand => !!b)
+
+    let ruleStatus = aggregateRuleResult(bands)
+    let matchStatus: MatchStatusType = ruleStatus === 'FULL' ? 'FULL' : ruleStatus === 'PARTIAL' ? 'PARTIAL' : ruleStatus === 'NONE' ? 'NONE' : 'NO_EVIDENCE'
+
     let sectionUpgradeApplied = false
     let upgradeFromSection: string | undefined
 
-    const hasFullChunk = chunkEvidence.some((e) => e.bandStatus === 'HIGH')
-    const hasPartialChunk = chunkEvidence.some((e) => e.bandStatus === 'AMBIGUOUS')
-
-    if (hasFullChunk) {
-      matchStatus = 'FULL'
-    } else if (hasPartialChunk) {
-      // TASK 1: AMBIGUOUS → PARTIAL (never NONE)
-      matchStatus = 'PARTIAL'
-
-      // TASK 2: Section-aware upgrade for PROJECTS/EXPERIENCE
-      if (bestOverallMatch && UPGRADE_ELIGIBLE_SECTIONS.includes(bestOverallMatch.sectionType as any)) {
-        // Check if judge confirmed relevance (if used)
-        const relevantEvidence = chunkEvidence.find(
-          (e) =>
-            e.bestCandidate?.cvChunkId === bestOverallMatch?.cvChunkId &&
-            e.bandStatus === 'AMBIGUOUS' &&
-            (!e.judgeUsed || (e.judgeResult?.relevant ?? true)), // Allow upgrade if judge not used or judge says relevant
-        )
-
-        if (relevantEvidence) {
-          matchStatus = 'FULL'
-          sectionUpgradeApplied = true
-          upgradeFromSection = bestOverallMatch.sectionType
+    if (matchStatus === 'PARTIAL' && bestOverallMatch) {
+      const confirmedByJudge = chunkEvidence.every(e => {
+        if (e.bandStatus === 'AMBIGUOUS' && e.bestCandidate?.cvChunkId === bestOverallMatch.cvChunkId) {
+          return !e.judgeUsed || (e.judgeResult?.relevant ?? true)
         }
+        return true
+      })
+
+      if (confirmedByJudge && canUpgradePartialToFull(
+        { sectionType: bestOverallMatch.sectionType as any, similarity: bestOverallMatch.score },
+        chunkEvidence.filter(e => e.bandStatus && e.bandStatus !== 'NO_EVIDENCE').length,
+        thresholds
+      )) {
+        matchStatus = 'FULL'
+        sectionUpgradeApplied = true
+        upgradeFromSection = bestOverallMatch.sectionType
       }
     }
 
-    // TASK 3: LLM judge degradation rule
-    // If judge was used and said NOT relevant, we can downgrade PARTIAL → NONE
-    // But ONLY if judge explicitly said not relevant (not if judge was skipped/unavailable)
+    // TASK 3: LLM judge degradation rule (PARTIAL -> NONE if judge says NOT RELEVANT)
     if (matchStatus === 'PARTIAL' && !sectionUpgradeApplied) {
       const judgedNotRelevant = chunkEvidence.some(
         (e) => e.bandStatus === 'AMBIGUOUS' && e.judgeUsed && e.judgeResult && !e.judgeResult.relevant,
       )
 
       if (judgedNotRelevant) {
-        // Judge explicitly said not relevant - downgrade to NONE
         matchStatus = 'NONE'
       }
-      // If judge was skipped/unavailable, AMBIGUOUS stays PARTIAL (NEVER degrades)
     }
 
-    // Calculate scores (TASK 5)
+    // Calculate scores
     const score = MATCH_STATUS_SCORES[matchStatus]
     const multiplier = RULE_TYPE_MULTIPLIERS[rule.ruleType as keyof typeof RULE_TYPE_MULTIPLIERS] || 1.0
     const weightedScore = score * multiplier
@@ -315,56 +341,51 @@ export class JdMatchingEngine {
       matchStatus,
       bestChunkMatch: bestOverallMatch
         ? {
-            ruleChunkId: bestOverallMatch.ruleChunkId,
-            cvChunkId: bestOverallMatch.cvChunkId,
-            sectionType: bestOverallMatch.sectionType,
-            score: bestOverallMatch.score,
-            band: bestOverallMatch.band,
-          }
+          ruleChunkId: bestOverallMatch.ruleChunkId,
+          cvChunkId: bestOverallMatch.cvChunkId,
+          sectionType: bestOverallMatch.sectionType,
+          score: bestOverallMatch.score,
+          band: bestOverallMatch.band,
+        }
         : null,
       sectionUpgradeApplied,
       upgradeFromSection,
       score,
       weightedScore,
-      satisfied: matchStatus !== 'NONE', // Legacy compatibility
+      satisfied: matchStatus !== 'NONE',
     }
 
-    // TASK 6: Strict gap detection
+    // TASK 6/8: Strict gap detection using Official Severity Mapping
     let gap: GapDTO | null = null
-    if (
-      matchStatus === 'NONE' &&
-      GAP_ELIGIBLE_RULE_TYPES.includes(rule.ruleType as (typeof GAP_ELIGIBLE_RULE_TYPES)[number])
-    ) {
-      const bestChunk = rule.chunks[0] // Get first chunk for reference
-      const severity =
-        rule.ruleType === 'MUST_HAVE'
-          ? bestOverallMatch && bestOverallMatch.score >= 0.3
-            ? 'MAJOR_GAP'
-            : 'CRITICAL_SKILL_GAP'
-          : 'MINOR_GAP'
+    if (matchStatus !== 'FULL') {
+      const bestBand = (bestOverallMatch?.band ?? 'NO_EVIDENCE') as SimilarityBand
+      const severity = getGapSeverity(bestBand, rule.ruleType as any)
 
-      gap = {
-        gapId: `GAP-${rule.id.slice(0, 8)}`,
-        ruleId: rule.id,
-        ruleKey: rule.id, // JD rules use id as key
-        ruleChunkId: bestChunk?.id ?? rule.id,
-        ruleChunkContent: bestChunk?.content ?? rule.content,
-        ruleType: rule.ruleType as RuleCategoryType,
-        bestCvChunkId: bestOverallMatch?.cvChunkId ?? null,
-        bestCvChunkSnippet: bestOverallMatch?.content ? bestOverallMatch.content.slice(0, 100) : null,
-        sectionType: bestOverallMatch?.sectionType ?? null,
-        similarity: bestOverallMatch?.score ?? null,
-        band: (bestOverallMatch?.band ?? 'NO_EVIDENCE') as 'HIGH' | 'AMBIGUOUS' | 'LOW' | 'NO_EVIDENCE',
-        severity: severity as GapSeverityType,
-        reason: bestOverallMatch
-          ? `Best match score (${bestOverallMatch.score.toFixed(2)}) in ${bestOverallMatch.band} band - insufficient evidence`
-          : 'No matching CV content found above similarity floor',
+      if (severity !== 'NONE' && (matchStatus === 'NONE' || matchStatus === 'NO_EVIDENCE' || (matchStatus === 'PARTIAL' && rule.ruleType === 'MUST_HAVE'))) {
+        const bestChunk = rule.chunks[0]
+        gap = {
+          gapId: `GAP-${rule.id.slice(0, 8)}`,
+          ruleId: rule.id,
+          ruleKey: rule.id,
+          ruleChunkId: bestChunk?.id ?? rule.id,
+          ruleChunkContent: bestChunk?.content ?? rule.content,
+          ruleType: rule.ruleType as RuleCategoryType,
+          bestCvChunkId: bestOverallMatch?.cvChunkId ?? null,
+          bestCvChunkSnippet: bestOverallMatch?.content ? bestOverallMatch.content.slice(0, 100) : null,
+          sectionType: bestOverallMatch?.sectionType ?? null,
+          similarity: bestOverallMatch?.score ?? null,
+          band: bestBand,
+          severity: severity as GapSeverityType,
+          reason: bestOverallMatch
+            ? `Best match score (${bestOverallMatch.score.toFixed(2)}) in ${bestOverallMatch.band} band - severity: ${severity}`
+            : 'No matching CV content found above similarity floor',
+        }
       }
     }
 
     // TASK 7: AMBIGUOUS-aware suggestions
     let suggestion: SuggestionDTO | null = null
-    if (matchStatus === 'PARTIAL' || matchStatus === 'NONE') {
+    if (matchStatus !== 'FULL') {
       suggestion = this.generateSuggestion(rule, matchStatus, bestOverallMatch, suggestionIndex)
     }
 

@@ -44,8 +44,8 @@ export class RuleIngestionService {
   // Max chunk length (characters)
   private readonly MAX_CHUNK_LENGTH = 300
 
-  // Rule ID patterns (e.g., S-MH-01, S-NH-03, S-BP-02)
-  private readonly RULE_ID_PATTERN = /^([A-Z]+-[A-Z]+-\d+)\s*[:\-—]?\s*/
+  // Rule ID patterns (e.g., "Rule S-MH-01:", "S-NH-03 -", etc.)
+  private readonly RULE_ID_PATTERN = /^(?:Rule\s+)?([A-Z]+-[A-Z]+-\d+)\s*[:\-—]?\s*/i
 
   // Category markers
   private readonly CATEGORY_MARKERS: Record<string, RuleType> = {
@@ -97,7 +97,7 @@ export class RuleIngestionService {
     private readonly prisma: PrismaService,
     private readonly pdfTextService: PdfTextService,
     private readonly embeddingService: EmbeddingService,
-  ) {}
+  ) { }
 
   /**
    * Ingest rules from a PDF buffer

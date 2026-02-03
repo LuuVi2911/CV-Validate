@@ -22,6 +22,8 @@ export interface RuleChunkData {
  */
 @Injectable()
 export class JdRuleChunkingService {
+  private readonly MAX_CHUNK_LENGTH = 300
+  private readonly MIN_CHUNK_LENGTH = 15
   /**
    * Create chunks from extracted rules
    * Each rule may produce multiple chunks if it contains multiple atomic requirements
@@ -41,74 +43,48 @@ export class JdRuleChunkingService {
    * Chunk a single rule into atomic requirement units
    */
   private chunkRule(content: string, ruleIndex: number): RuleChunkData[] {
-    // Try to split into atomic requirements
-    const atomicRequirements = this.splitIntoAtomicRequirements(content)
+    const normalized = content.replace(/\s+/g, ' ').trim()
+    if (!normalized) return []
 
-    // If we couldn't split, use the whole content as one chunk
-    if (atomicRequirements.length === 0) {
-      return [{ ruleIndex, content: this.normalizeChunkContent(content) }]
+    // Split by bullet markers, numbered lists, semicolons
+    const initialChunks = this.splitByPunctuation(normalized)
+    const atomicChunks: RuleChunkData[] = []
+
+    for (const chunk of initialChunks) {
+      if (chunk.length <= this.MAX_CHUNK_LENGTH) {
+        if (chunk.length >= this.MIN_CHUNK_LENGTH) {
+          atomicChunks.push({ ruleIndex, content: this.normalizeChunkContent(chunk) })
+        }
+      } else {
+        // Further split long chunks by commas + tech stack detection
+        const subChunks = this.splitByCommasAndTech(chunk)
+        for (const sub of subChunks) {
+          if (sub.length >= this.MIN_CHUNK_LENGTH) {
+            atomicChunks.push({
+              ruleIndex,
+              content: this.normalizeChunkContent(sub.slice(0, this.MAX_CHUNK_LENGTH)),
+            })
+          }
+        }
+      }
     }
 
-    return atomicRequirements.map((requirement) => ({
-      ruleIndex,
-      content: this.normalizeChunkContent(requirement),
-    }))
+    return atomicChunks
   }
 
-  /**
-   * Split rule content into atomic requirements
-   * Uses multiple heuristics to identify separate requirements within a single rule
-   */
-  private splitIntoAtomicRequirements(content: string): string[] {
-    // If content is short enough, don't split
-    if (content.length < 80) {
-      return [content]
+  private splitByPunctuation(text: string): string[] {
+    return text
+      .split(/(?:[-*•●]|^\d{1,3}[.)])|;/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0)
+  }
+
+  private splitByCommasAndTech(text: string): string[] {
+    const commaCount = (text.match(/,/g) || []).length
+    if (commaCount >= 2 || text.length > this.MAX_CHUNK_LENGTH) {
+      return text.split(/,\s+/).map((s) => s.trim())
     }
-
-    // Try different splitting strategies
-    const results: string[] = []
-
-    // Strategy 1: Split by comma followed by skill/technology patterns
-    const commaSplitPattern = /,\s*(?=\w+(?:\s+\w+)?(?:\s*\([^)]+\))?$)/
-    if (commaSplitPattern.test(content)) {
-      const parts = content.split(/,\s*/)
-      if (parts.length > 1 && parts.every((p) => p.trim().length >= 3)) {
-        results.push(...parts.map((p) => p.trim()))
-        return results.filter((r) => r.length >= 10)
-      }
-    }
-
-    // Strategy 2: Split by "and/or" when listing requirements
-    const andOrPattern = /\s+(?:and|or)\s+(?=[A-Z]|\w+(?:ing|tion|ment|able))/
-    if (andOrPattern.test(content)) {
-      const parts = content.split(andOrPattern)
-      if (parts.length > 1 && parts.every((p) => p.trim().length >= 10)) {
-        results.push(...parts.map((p) => p.trim()))
-        return results.filter((r) => r.length >= 10)
-      }
-    }
-
-    // Strategy 3: Split by semicolon
-    if (content.includes(';')) {
-      const parts = content.split(/;\s*/)
-      if (parts.length > 1 && parts.every((p) => p.trim().length >= 10)) {
-        results.push(...parts.map((p) => p.trim()))
-        return results.filter((r) => r.length >= 10)
-      }
-    }
-
-    // Strategy 4: Split by slash when listing alternatives
-    if (content.includes('/') && content.split('/').length <= 4) {
-      const parts = content.split(/\s*\/\s*/)
-      if (parts.length > 1 && parts.every((p) => p.trim().length >= 3)) {
-        // Create a chunk for each alternative
-        results.push(...parts.map((p) => p.trim()))
-        return results.filter((r) => r.length >= 3)
-      }
-    }
-
-    // No splitting applied - return original
-    return [content]
+    return [text]
   }
 
   /**
@@ -124,3 +100,4 @@ export class JdRuleChunkingService {
       .trim()
   }
 }
+

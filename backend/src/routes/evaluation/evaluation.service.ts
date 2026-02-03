@@ -42,14 +42,14 @@ export class EvaluationService {
     // Guard: Ensure CV exists and is parsed
     await this.cvService.ensureCvParsed(userId, cvId)
 
-    // Stage 5: CV Quality Evaluation
+    // Stage 5: CV Quality Evaluation (STRUCTURAL only, cheap gate)
     const cvQualityStart = Date.now()
-    const cvQualityResult = await this.cvQualityEngine.evaluate(cvId)
+    const cvQualityStructural = await this.cvQualityEngine.evaluate(cvId, { includeSemantic: false })
     timings.cvQuality = Date.now() - cvQualityStart
 
     // Hard gate: If NOT_READY, return immediately
-    if (cvQualityResult.decision === 'NOT_READY') {
-      return this.buildResponse(cvQualityResult, undefined, {
+    if (cvQualityStructural.decision === 'NOT_READY') {
+      return this.buildResponse(cvQualityStructural, undefined, {
         requestId,
         cvId,
         jdId,
@@ -63,6 +63,26 @@ export class EvaluationService {
     const cvEmbeddingStart = Date.now()
     await this.embeddingService.embedCvChunks(cvId)
     timings.cvEmbedding = Date.now() - cvEmbeddingStart
+
+    // Stage 8: CV Quality Evaluation (STRUCTURAL + SEMANTIC via RuleSet in DB)
+    const cvQualityFullStart = Date.now()
+    const cvQualityResult = await this.cvQualityEngine.evaluate(cvId, {
+      includeSemantic: true,
+      semanticRuleSetKey: 'cv-quality-student-fresher',
+    })
+    timings.cvQuality = (timings.cvQuality ?? 0) + (Date.now() - cvQualityFullStart)
+
+    // Hard gate (post-semantic): If NOT_READY, stop before JD matching
+    if (cvQualityResult.decision === 'NOT_READY') {
+      return this.buildResponse(cvQualityResult, undefined, {
+        requestId,
+        cvId,
+        jdId,
+        stopReason: 'CV quality is NOT_READY after semantic evaluation',
+        timings,
+        startTime,
+      })
+    }
 
     // Gate: If no JD provided, return quality-only
     if (!jdId) {
