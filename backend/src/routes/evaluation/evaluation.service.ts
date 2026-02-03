@@ -5,7 +5,7 @@ import { JdService } from '../jd/jd.service'
 import { CvQualityEngine } from 'src/engines/cv-quality/cv-quality.engine'
 import { JdMatchingEngine } from 'src/engines/jd-matching/jd-matching.engine'
 import { EmbeddingService } from 'src/shared/services/embedding.service'
-import type { CvQualityResultDTO, JdMatchResultDTO, TraceMetadataDTO } from './evaluation.dto'
+import type { CvQualityResultDTO, JdMatchResultDTO, TraceMetadataDTO, GapDTO, SuggestionDTO } from './evaluation.dto'
 import envConfig from 'src/shared/config'
 
 /**
@@ -14,7 +14,7 @@ import envConfig from 'src/shared/config'
  * Allowed:
  * - Ownership checks (CV/JD belongs to user)
  * - Pipeline status checks (Cv.status)
- * - Readiness gate (if cvDecision !== READY)
+ * - Readiness gate (only NOT_READY blocks pipeline; NEEDS_IMPROVEMENT still gets JD matching)
  * - DTO assembly
  *
  * Forbidden:
@@ -76,17 +76,7 @@ export class EvaluationService {
       })
     }
 
-    // Gate: If CV decision is not READY, return quality-only (JD matching requires READY)
-    if (cvQualityResult.decision !== 'READY') {
-      return this.buildResponse(cvQualityResult, undefined, {
-        requestId,
-        cvId,
-        jdId,
-        stopReason: 'CV needs improvement; JD matching requires READY status',
-        timings,
-        startTime,
-      })
-    }
+    // JD matching runs for both READY and NEEDS_IMPROVEMENT (only NOT_READY is gated above)
 
     // Guard: Ensure JD exists and belongs to user
     await this.jdService.ensureJdExists(userId, jdId)
@@ -158,9 +148,44 @@ export class EvaluationService {
       },
     }
 
+    // Extract gaps and suggestions from jdMatchResult
+    const gaps: GapDTO[] = jdMatchResult?.gaps ?? []
+    const suggestions: SuggestionDTO[] = jdMatchResult?.suggestions ?? []
+
+    // Build decision support
+    const criticalGaps = gaps.filter((g) => g.severity === 'CRITICAL_SKILL_GAP').length
+    const majorGaps = gaps.filter((g) => g.severity === 'MAJOR_GAP').length
+    const improvementAreas = gaps.filter((g) => g.severity === 'IMPROVEMENT').length
+
+    let readinessScore = 100
+    readinessScore -= criticalGaps * 25
+    readinessScore -= majorGaps * 10
+    readinessScore -= improvementAreas * 2
+    readinessScore = Math.max(0, Math.min(100, readinessScore))
+
+    let recommendation: 'NOT_READY' | 'NEEDS_IMPROVEMENT' | 'READY_TO_APPLY'
+    if (cvQualityResult.decision === 'NOT_READY' || criticalGaps > 0) {
+      recommendation = 'NOT_READY'
+    } else if (cvQualityResult.decision === 'NEEDS_IMPROVEMENT' || majorGaps > 2) {
+      recommendation = 'NEEDS_IMPROVEMENT'
+    } else {
+      recommendation = 'READY_TO_APPLY'
+    }
+
     return {
       cvQuality: cvQualityResult,
-      jdMatch: jdMatchResult,
+      jdMatch: jdMatchResult ?? null,
+      gaps,
+      suggestions,
+      decisionSupport: {
+        readinessScore,
+        recommendation,
+        explanation: {
+          criticalMustHaveGaps: criticalGaps,
+          majorGaps,
+          improvementAreas,
+        },
+      },
       trace,
     }
   }

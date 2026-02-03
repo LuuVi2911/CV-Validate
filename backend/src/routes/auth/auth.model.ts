@@ -7,7 +7,6 @@ export const RegisterBodySchema = UserSchema.pick({
 })
   .extend({
     confirmPassword: z.string().min(8).max(32),
-    code: z.string().length(6),
   })
   .strict()
   .superRefine(({ confirmPassword, password }, ctx) => {
@@ -29,14 +28,13 @@ export const RegisterResponseSchema = z.object({
   deletedAt: z.coerce.date().nullable(),
 })
 
-export const SendVerificationEmailBodySchema = z
+export const ResendVerificationEmailBodySchema = z
   .object({
     email: z.string().email(),
-    type: z.enum(['EMAIL_VERIFICATION', 'FORGOT_PASSWORD']),
   })
   .strict()
 
-export const SendVerificationEmailResponseSchema = z.object({
+export const ResendVerificationEmailResponseSchema = z.object({
   message: z.string(),
 })
 

@@ -38,6 +38,19 @@ export const CvSectionType = {
 export type CvSectionType = (typeof CvSectionType)[keyof typeof CvSectionType]
 
 
+export const JDParagraphType = {
+  REQUIREMENTS: 'REQUIREMENTS',
+  RESPONSIBILITIES: 'RESPONSIBILITIES',
+  NICE_TO_HAVE: 'NICE_TO_HAVE',
+  BENEFITS: 'BENEFITS',
+  COMPANY: 'COMPANY',
+  PROCESS: 'PROCESS',
+  UNKNOWN: 'UNKNOWN'
+} as const
+
+export type JDParagraphType = (typeof JDParagraphType)[keyof typeof JDParagraphType]
+
+
 export const RuleType = {
   MUST_HAVE: 'MUST_HAVE',
   NICE_TO_HAVE: 'NICE_TO_HAVE',
@@ -45,3 +58,21 @@ export const RuleType = {
 } as const
 
 export type RuleType = (typeof RuleType)[keyof typeof RuleType]
+
+
+export const RuleStrategy = {
+  STRUCTURAL: 'STRUCTURAL',
+  SEMANTIC: 'SEMANTIC',
+  HYBRID: 'HYBRID'
+} as const
+
+export type RuleStrategy = (typeof RuleStrategy)[keyof typeof RuleStrategy]
+
+
+export const RuleSeverity = {
+  critical: 'critical',
+  warning: 'warning',
+  info: 'info'
+} as const
+
+export type RuleSeverity = (typeof RuleSeverity)[keyof typeof RuleSeverity]

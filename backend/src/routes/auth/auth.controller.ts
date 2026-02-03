@@ -1,20 +1,14 @@
-import {
-  Body,
-  Controller,
-  HttpCode,
-  HttpStatus,
-  Post,
-  UnauthorizedException,
-  UnprocessableEntityException,
-} from '@nestjs/common'
+import { Body, Controller, HttpCode, HttpStatus, Post, UnauthorizedException } from '@nestjs/common'
 import { Auth } from 'src/shared/decorators/auth.decorator'
 import { AuthType } from 'src/shared/constants/auth.constant'
 import { AuthService } from './auth.service'
 import {
   RegisterBodyDTO,
   RegisterResponseDTO,
-  SendVerificationEmailBodyDTO,
-  SendVerificationEmailResponseDTO,
+  ResendVerificationEmailBodyDTO,
+  ResendVerificationEmailResponseDTO,
+  VerifyEmailBodyDTO,
+  VerifyEmailResponseDTO,
   LoginBodyDTO,
   LoginResponseDTO,
   RefreshTokenBodyDTO,
@@ -28,42 +22,61 @@ import {
   InvalidOTPException,
   OTPExpiredException,
   EmailNotFoundException,
+  EmailAlreadyRegisteredException,
+  EmailNotVerifiedException,
+  EmailAlreadyVerifiedException,
   RefreshTokenAlreadyUsedException,
   FailedToSendOTPException,
 } from './auth.error'
-import { VerificationCodeType } from 'src/shared/constants/auth.constant'
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
-
-  @Post('send-verification-email')
-  @Auth([AuthType.None])
-  @HttpCode(HttpStatus.OK)
-  async sendVerificationEmail(@Body() body: SendVerificationEmailBodyDTO): Promise<SendVerificationEmailResponseDTO> {
-    try {
-      return await this.authService.sendOTP(body.email, body.type as VerificationCodeType)
-    } catch (err) {
-      if (err instanceof Error && err.message.includes('send')) {
-        throw FailedToSendOTPException
-      }
-      throw err
-    }
-  }
 
   @Post('register')
   @Auth([AuthType.None])
   @HttpCode(HttpStatus.CREATED)
   async register(@Body() body: RegisterBodyDTO): Promise<RegisterResponseDTO> {
     try {
-      return await this.authService.register(body.email, body.password, body.code)
+      return await this.authService.register(body.email, body.password)
     } catch (err) {
       if (err instanceof Error) {
-        if (err.message === 'Email not sent OTP') {
-          throw new UnprocessableEntityException([{ message: 'Error.EmailNotSentOTP', path: 'email' }])
-        }
+        if (err.message === 'Email already registered') throw EmailAlreadyRegisteredException
+        if (err.message.includes('send')) throw FailedToSendOTPException
+      }
+      throw err
+    }
+  }
+
+  @Post('verify-email')
+  @Auth([AuthType.None])
+  @HttpCode(HttpStatus.OK)
+  async verifyEmail(@Body() body: VerifyEmailBodyDTO): Promise<VerifyEmailResponseDTO> {
+    try {
+      return await this.authService.verifyEmail(body.email, body.code)
+    } catch (err) {
+      if (err instanceof Error) {
+        if (err.message === 'Email not found') throw EmailNotFoundException
         if (err.message === 'OTP is invalid or expired') throw OTPExpiredException
         if (err.message === 'OTP is incorrect') throw InvalidOTPException
+      }
+      throw err
+    }
+  }
+
+  @Post('resend-verification-email')
+  @Auth([AuthType.None])
+  @HttpCode(HttpStatus.OK)
+  async resendVerificationEmail(
+    @Body() body: ResendVerificationEmailBodyDTO,
+  ): Promise<ResendVerificationEmailResponseDTO> {
+    try {
+      return await this.authService.resendVerificationEmail(body.email)
+    } catch (err) {
+      if (err instanceof Error) {
+        if (err.message === 'Email not found') throw EmailNotFoundException
+        if (err.message === 'Email already verified') throw EmailAlreadyVerifiedException
+        if (err.message.includes('send')) throw FailedToSendOTPException
       }
       throw err
     }
@@ -76,8 +89,13 @@ export class AuthController {
     try {
       return await this.authService.login(body.email, body.password)
     } catch (err) {
-      if (err instanceof Error && err.message === 'Email or password is incorrect') {
-        throw new UnauthorizedException('Error.InvalidCredentials')
+      if (err instanceof Error) {
+        if (err.message === 'Email or password is incorrect') {
+          throw new UnauthorizedException('Error.InvalidCredentials')
+        }
+        if (err.message === 'Email not verified') {
+          throw EmailNotVerifiedException
+        }
       }
       throw err
     }
@@ -112,11 +130,11 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async forgotPassword(@Body() body: ForgotPasswordBodyDTO): Promise<ForgotPasswordResponseDTO> {
     try {
-      await this.authService.sendOTP(body.email, VerificationCodeType.FORGOT_PASSWORD)
-      return { message: 'OTP sent successfully' }
+      return await this.authService.sendForgotPasswordOTP(body.email)
     } catch (err) {
-      if (err instanceof Error && err.message.includes('send')) {
-        throw FailedToSendOTPException
+      if (err instanceof Error) {
+        if (err.message === 'Email not found') throw EmailNotFoundException
+        if (err.message.includes('send')) throw FailedToSendOTPException
       }
       throw err
     }

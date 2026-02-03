@@ -59,6 +59,9 @@ export const ModelName = {
   JobDescription: 'JobDescription',
   JDRule: 'JDRule',
   JDRuleChunk: 'JDRuleChunk',
+  RuleSet: 'RuleSet',
+  CvQualityRule: 'CvQualityRule',
+  CvQualityRuleChunk: 'CvQualityRuleChunk',
   RefreshToken: 'RefreshToken'
 } as const
 
@@ -148,7 +151,9 @@ export const JDRuleScalarFieldEnum = {
   id: 'id',
   jdId: 'jdId',
   ruleType: 'ruleType',
-  content: 'content'
+  content: 'content',
+  paragraphType: 'paragraphType',
+  ignored: 'ignored'
 } as const
 
 export type JDRuleScalarFieldEnum = (typeof JDRuleScalarFieldEnum)[keyof typeof JDRuleScalarFieldEnum]
@@ -157,10 +162,61 @@ export type JDRuleScalarFieldEnum = (typeof JDRuleScalarFieldEnum)[keyof typeof 
 export const JDRuleChunkScalarFieldEnum = {
   id: 'id',
   ruleId: 'ruleId',
-  content: 'content'
+  chunkKey: 'chunkKey',
+  order: 'order',
+  content: 'content',
+  contentHash: 'contentHash'
 } as const
 
 export type JDRuleChunkScalarFieldEnum = (typeof JDRuleChunkScalarFieldEnum)[keyof typeof JDRuleChunkScalarFieldEnum]
+
+
+export const RuleSetScalarFieldEnum = {
+  id: 'id',
+  key: 'key',
+  sourcePdf: 'sourcePdf',
+  version: 'version',
+  embeddingProvider: 'embeddingProvider',
+  embeddingModel: 'embeddingModel',
+  embeddingDimension: 'embeddingDimension',
+  vectorOperator: 'vectorOperator',
+  similarityTransform: 'similarityTransform',
+  createdAt: 'createdAt'
+} as const
+
+export type RuleSetScalarFieldEnum = (typeof RuleSetScalarFieldEnum)[keyof typeof RuleSetScalarFieldEnum]
+
+
+export const CvQualityRuleScalarFieldEnum = {
+  id: 'id',
+  ruleSetId: 'ruleSetId',
+  ruleKey: 'ruleKey',
+  category: 'category',
+  severity: 'severity',
+  strategy: 'strategy',
+  title: 'title',
+  content: 'content',
+  appliesToSections: 'appliesToSections',
+  structuralCheckKey: 'structuralCheckKey',
+  params: 'params',
+  order: 'order',
+  createdAt: 'createdAt'
+} as const
+
+export type CvQualityRuleScalarFieldEnum = (typeof CvQualityRuleScalarFieldEnum)[keyof typeof CvQualityRuleScalarFieldEnum]
+
+
+export const CvQualityRuleChunkScalarFieldEnum = {
+  id: 'id',
+  ruleId: 'ruleId',
+  chunkKey: 'chunkKey',
+  order: 'order',
+  content: 'content',
+  contentHash: 'contentHash',
+  createdAt: 'createdAt'
+} as const
+
+export type CvQualityRuleChunkScalarFieldEnum = (typeof CvQualityRuleChunkScalarFieldEnum)[keyof typeof CvQualityRuleChunkScalarFieldEnum]
 
 
 export const RefreshTokenScalarFieldEnum = {
@@ -182,6 +238,14 @@ export const SortOrder = {
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
+export const NullableJsonNullValueInput = {
+  DbNull: DbNull,
+  JsonNull: JsonNull
+} as const
+
+export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
 export const QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
@@ -196,4 +260,13 @@ export const NullsOrder = {
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+export const JsonNullValueFilter = {
+  DbNull: DbNull,
+  JsonNull: JsonNull,
+  AnyNull: AnyNull
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 

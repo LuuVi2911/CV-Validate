@@ -101,7 +101,7 @@ model CvChunk {
   content   String
 
   // pgvector embedding
-  embedding Unsupported("vector(768)")
+  embedding Unsupported("vector(768)")?
 
   section CvSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
 
@@ -120,35 +120,132 @@ model JobDescription {
   @@index([userId])
 }
 
+// JD paragraph classification for noise filtering
+enum JDParagraphType {
+  REQUIREMENTS      // must, required, minimum, qualifications
+  RESPONSIBILITIES  // you will, role includes, contribute to
+  NICE_TO_HAVE      // preferred, bonus, plus
+  BENEFITS          // salary, benefits, healthcare (ignored)
+  COMPANY           // culture, we offer, inclusive (ignored)
+  PROCESS           // deadline, recruitment process (ignored)
+  UNKNOWN           // unclassified
+}
+
 model JDRule {
-  id       String   @id @default(uuid())
-  jdId     String
-  ruleType RuleType
-  content  String
+  id            String          @id @default(uuid())
+  jdId          String
+  ruleType      RuleType
+  content       String
+  paragraphType JDParagraphType @default(UNKNOWN) // for noise filtering
+  ignored       Boolean         @default(false)   // true if BENEFITS/COMPANY/PROCESS
 
   jd     JobDescription @relation(fields: [jdId], references: [id], onDelete: Cascade)
   chunks JDRuleChunk[]
 
   @@index([jdId])
+  @@index([paragraphType])
+  @@index([ignored])
 }
 
 model JDRuleChunk {
-  id      String @id @default(uuid())
-  ruleId  String
-  content String
+  id          String @id @default(uuid())
+  ruleId      String
+  chunkKey    String?  // stable hash for deduplication (optional for backwards compat)
+  order       Int      @default(0)
+  content     String   // <= 300 chars
+  contentHash String?  // hash of normalized content
 
   // pgvector embedding
-  embedding Unsupported("vector(768)")
+  embedding Unsupported("vector(768)")?
 
   rule JDRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
 
   @@index([ruleId])
+  @@index([chunkKey])
 }
 
 enum RuleType {
   MUST_HAVE
   NICE_TO_HAVE
   BEST_PRACTICE
+}
+
+// =============================================================================
+// RULE SETS (CV Quality Rules + JD Matching Rules from PDFs)
+// =============================================================================
+
+enum RuleStrategy {
+  STRUCTURAL // enforced by code-based detectors (email, phone, date, section presence)
+  SEMANTIC   // evaluated via embeddings + cosine similarity
+  HYBRID     // requires both structural check + semantic evidence
+}
+
+enum RuleSeverity {
+  critical
+  warning
+  info
+}
+
+model RuleSet {
+  id                  String   @id @default(uuid())
+  key                 String   @unique // e.g. "cv-quality-student-fresher", "jd-matching-v1"
+  sourcePdf           String   // original PDF filename
+  version             String   // e.g. "2026-02-03"
+  embeddingProvider   String   @default("gemini")
+  embeddingModel      String   @default("text-embedding-004")
+  embeddingDimension  Int      @default(768)
+  vectorOperator      String   @default("<=>") // pgvector cosine distance
+  similarityTransform String   @default("1 - distance") // formula
+  createdAt           DateTime @default(now())
+
+  rules CvQualityRule[]
+
+  @@index([key])
+  @@index([createdAt])
+}
+
+model CvQualityRule {
+  id                 String       @id @default(uuid())
+  ruleSetId          String
+  ruleKey            String       // stable, deterministic (e.g. S-MH-01)
+  category           RuleType     // MUST_HAVE | NICE_TO_HAVE | BEST_PRACTICE
+  severity           RuleSeverity
+  strategy           RuleStrategy
+  title              String?      // optional human-readable title
+  content            String       // normalized full rule text
+  appliesToSections  Json?        // JSON array of CvSectionType or null (global)
+  structuralCheckKey String?      // key for structural detector (e.g. "email_present")
+  params             Json?        // detector configuration parameters
+  order              Int          @default(0) // order within rule set
+  createdAt          DateTime     @default(now())
+
+  ruleSet RuleSet          @relation(fields: [ruleSetId], references: [id], onDelete: Cascade)
+  chunks  CvQualityRuleChunk[]
+
+  @@unique([ruleSetId, ruleKey])
+  @@index([ruleSetId])
+  @@index([ruleKey])
+  @@index([category])
+  @@index([strategy])
+}
+
+model CvQualityRuleChunk {
+  id          String   @id @default(uuid())
+  ruleId      String
+  chunkKey    String   // stable, deterministic hash(ruleKey + order + content)
+  order       Int
+  content     String   // <= 300 chars
+  contentHash String   // hash of normalized content for deduplication
+  createdAt   DateTime @default(now())
+
+  // pgvector embedding
+  embedding Unsupported("vector(768)")?
+
+  rule CvQualityRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@unique([ruleId, chunkKey])
+  @@index([ruleId])
+  @@index([chunkKey])
 }
 
 model RefreshToken {

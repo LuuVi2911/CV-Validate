@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common'
-import * as pdfParse from 'pdf-parse'
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { PDFParse } = require('pdf-parse')
 
 /**
  * PdfTextService - Stage 2
@@ -24,7 +26,8 @@ export class PdfTextService {
    */
   async extractText(buffer: Buffer): Promise<string> {
     try {
-      const data = await pdfParse(buffer)
+      const parser = new PDFParse({ data: buffer })
+      const data = await parser.getText()
       const rawText = data.text
 
       if (!rawText || rawText.trim().length === 0) {
@@ -44,6 +47,8 @@ export class PdfTextService {
         if (error.message === 'PDF_EMPTY_TEXT') {
           throw error
         }
+        // Log the actual error for debugging
+        console.error('[PdfTextService] PDF parse error:', error.message)
       }
       throw new Error('PDF_UNREADABLE')
     }

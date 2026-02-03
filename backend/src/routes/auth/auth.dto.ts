@@ -2,8 +2,10 @@ import { createZodDto } from 'nestjs-zod'
 import {
   RegisterBodySchema,
   RegisterResponseSchema,
-  SendVerificationEmailBodySchema,
-  SendVerificationEmailResponseSchema,
+  ResendVerificationEmailBodySchema,
+  ResendVerificationEmailResponseSchema,
+  VerifyEmailCodeBodySchema,
+  VerifyEmailCodeResponseSchema,
   LoginBodySchema,
   LoginResponseSchema,
   RefreshTokenBodySchema,
@@ -17,8 +19,10 @@ import {
 
 export class RegisterBodyDTO extends createZodDto(RegisterBodySchema) {}
 export class RegisterResponseDTO extends createZodDto(RegisterResponseSchema) {}
-export class SendVerificationEmailBodyDTO extends createZodDto(SendVerificationEmailBodySchema) {}
-export class SendVerificationEmailResponseDTO extends createZodDto(SendVerificationEmailResponseSchema) {}
+export class ResendVerificationEmailBodyDTO extends createZodDto(ResendVerificationEmailBodySchema) {}
+export class ResendVerificationEmailResponseDTO extends createZodDto(ResendVerificationEmailResponseSchema) {}
+export class VerifyEmailBodyDTO extends createZodDto(VerifyEmailCodeBodySchema) {}
+export class VerifyEmailResponseDTO extends createZodDto(VerifyEmailCodeResponseSchema) {}
 export class LoginBodyDTO extends createZodDto(LoginBodySchema) {}
 export class LoginResponseDTO extends createZodDto(LoginResponseSchema) {}
 export class RefreshTokenBodyDTO extends createZodDto(RefreshTokenBodySchema) {}

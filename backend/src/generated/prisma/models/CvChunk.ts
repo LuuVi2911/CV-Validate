@@ -252,6 +252,20 @@ export type CvChunkScalarWhereWithAggregatesInput = {
   content?: Prisma.StringWithAggregatesFilter<"CvChunk"> | string
 }
 
+export type CvChunkCreateInput = {
+  id?: string
+  order: number
+  content: string
+  section: Prisma.CvSectionCreateNestedOneWithoutChunksInput
+}
+
+export type CvChunkUncheckedCreateInput = {
+  id?: string
+  sectionId: string
+  order: number
+  content: string
+}
+
 export type CvChunkUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   order?: Prisma.IntFieldUpdateOperationsInput | number
@@ -264,6 +278,13 @@ export type CvChunkUncheckedUpdateInput = {
   sectionId?: Prisma.StringFieldUpdateOperationsInput | string
   order?: Prisma.IntFieldUpdateOperationsInput | number
   content?: Prisma.StringFieldUpdateOperationsInput | string
+}
+
+export type CvChunkCreateManyInput = {
+  id?: string
+  sectionId: string
+  order: number
+  content: string
 }
 
 export type CvChunkUpdateManyMutationInput = {
@@ -319,14 +340,24 @@ export type CvChunkSumOrderByAggregateInput = {
 }
 
 export type CvChunkCreateNestedManyWithoutSectionInput = {
+  create?: Prisma.XOR<Prisma.CvChunkCreateWithoutSectionInput, Prisma.CvChunkUncheckedCreateWithoutSectionInput> | Prisma.CvChunkCreateWithoutSectionInput[] | Prisma.CvChunkUncheckedCreateWithoutSectionInput[]
+  connectOrCreate?: Prisma.CvChunkCreateOrConnectWithoutSectionInput | Prisma.CvChunkCreateOrConnectWithoutSectionInput[]
+  createMany?: Prisma.CvChunkCreateManySectionInputEnvelope
   connect?: Prisma.CvChunkWhereUniqueInput | Prisma.CvChunkWhereUniqueInput[]
 }
 
 export type CvChunkUncheckedCreateNestedManyWithoutSectionInput = {
+  create?: Prisma.XOR<Prisma.CvChunkCreateWithoutSectionInput, Prisma.CvChunkUncheckedCreateWithoutSectionInput> | Prisma.CvChunkCreateWithoutSectionInput[] | Prisma.CvChunkUncheckedCreateWithoutSectionInput[]
+  connectOrCreate?: Prisma.CvChunkCreateOrConnectWithoutSectionInput | Prisma.CvChunkCreateOrConnectWithoutSectionInput[]
+  createMany?: Prisma.CvChunkCreateManySectionInputEnvelope
   connect?: Prisma.CvChunkWhereUniqueInput | Prisma.CvChunkWhereUniqueInput[]
 }
 
 export type CvChunkUpdateManyWithoutSectionNestedInput = {
+  create?: Prisma.XOR<Prisma.CvChunkCreateWithoutSectionInput, Prisma.CvChunkUncheckedCreateWithoutSectionInput> | Prisma.CvChunkCreateWithoutSectionInput[] | Prisma.CvChunkUncheckedCreateWithoutSectionInput[]
+  connectOrCreate?: Prisma.CvChunkCreateOrConnectWithoutSectionInput | Prisma.CvChunkCreateOrConnectWithoutSectionInput[]
+  upsert?: Prisma.CvChunkUpsertWithWhereUniqueWithoutSectionInput | Prisma.CvChunkUpsertWithWhereUniqueWithoutSectionInput[]
+  createMany?: Prisma.CvChunkCreateManySectionInputEnvelope
   set?: Prisma.CvChunkWhereUniqueInput | Prisma.CvChunkWhereUniqueInput[]
   disconnect?: Prisma.CvChunkWhereUniqueInput | Prisma.CvChunkWhereUniqueInput[]
   delete?: Prisma.CvChunkWhereUniqueInput | Prisma.CvChunkWhereUniqueInput[]
@@ -337,6 +368,10 @@ export type CvChunkUpdateManyWithoutSectionNestedInput = {
 }
 
 export type CvChunkUncheckedUpdateManyWithoutSectionNestedInput = {
+  create?: Prisma.XOR<Prisma.CvChunkCreateWithoutSectionInput, Prisma.CvChunkUncheckedCreateWithoutSectionInput> | Prisma.CvChunkCreateWithoutSectionInput[] | Prisma.CvChunkUncheckedCreateWithoutSectionInput[]
+  connectOrCreate?: Prisma.CvChunkCreateOrConnectWithoutSectionInput | Prisma.CvChunkCreateOrConnectWithoutSectionInput[]
+  upsert?: Prisma.CvChunkUpsertWithWhereUniqueWithoutSectionInput | Prisma.CvChunkUpsertWithWhereUniqueWithoutSectionInput[]
+  createMany?: Prisma.CvChunkCreateManySectionInputEnvelope
   set?: Prisma.CvChunkWhereUniqueInput | Prisma.CvChunkWhereUniqueInput[]
   disconnect?: Prisma.CvChunkWhereUniqueInput | Prisma.CvChunkWhereUniqueInput[]
   delete?: Prisma.CvChunkWhereUniqueInput | Prisma.CvChunkWhereUniqueInput[]
@@ -344,6 +379,34 @@ export type CvChunkUncheckedUpdateManyWithoutSectionNestedInput = {
   update?: Prisma.CvChunkUpdateWithWhereUniqueWithoutSectionInput | Prisma.CvChunkUpdateWithWhereUniqueWithoutSectionInput[]
   updateMany?: Prisma.CvChunkUpdateManyWithWhereWithoutSectionInput | Prisma.CvChunkUpdateManyWithWhereWithoutSectionInput[]
   deleteMany?: Prisma.CvChunkScalarWhereInput | Prisma.CvChunkScalarWhereInput[]
+}
+
+export type CvChunkCreateWithoutSectionInput = {
+  id?: string
+  order: number
+  content: string
+}
+
+export type CvChunkUncheckedCreateWithoutSectionInput = {
+  id?: string
+  order: number
+  content: string
+}
+
+export type CvChunkCreateOrConnectWithoutSectionInput = {
+  where: Prisma.CvChunkWhereUniqueInput
+  create: Prisma.XOR<Prisma.CvChunkCreateWithoutSectionInput, Prisma.CvChunkUncheckedCreateWithoutSectionInput>
+}
+
+export type CvChunkCreateManySectionInputEnvelope = {
+  data: Prisma.CvChunkCreateManySectionInput | Prisma.CvChunkCreateManySectionInput[]
+  skipDuplicates?: boolean
+}
+
+export type CvChunkUpsertWithWhereUniqueWithoutSectionInput = {
+  where: Prisma.CvChunkWhereUniqueInput
+  update: Prisma.XOR<Prisma.CvChunkUpdateWithoutSectionInput, Prisma.CvChunkUncheckedUpdateWithoutSectionInput>
+  create: Prisma.XOR<Prisma.CvChunkCreateWithoutSectionInput, Prisma.CvChunkUncheckedCreateWithoutSectionInput>
 }
 
 export type CvChunkUpdateWithWhereUniqueWithoutSectionInput = {
@@ -364,6 +427,12 @@ export type CvChunkScalarWhereInput = {
   sectionId?: Prisma.StringFilter<"CvChunk"> | string
   order?: Prisma.IntFilter<"CvChunk"> | number
   content?: Prisma.StringFilter<"CvChunk"> | string
+}
+
+export type CvChunkCreateManySectionInput = {
+  id?: string
+  order: number
+  content: string
 }
 
 export type CvChunkUpdateWithoutSectionInput = {
@@ -394,6 +463,13 @@ export type CvChunkSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   section?: boolean | Prisma.CvSectionDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["cvChunk"]>
 
+export type CvChunkSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  id?: boolean
+  sectionId?: boolean
+  order?: boolean
+  content?: boolean
+  section?: boolean | Prisma.CvSectionDefaultArgs<ExtArgs>
+}, ExtArgs["result"]["cvChunk"]>
 
 export type CvChunkSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -412,6 +488,9 @@ export type CvChunkSelectScalar = {
 
 export type CvChunkOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "sectionId" | "order" | "content", ExtArgs["result"]["cvChunk"]>
 export type CvChunkInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  section?: boolean | Prisma.CvSectionDefaultArgs<ExtArgs>
+}
+export type CvChunkIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   section?: boolean | Prisma.CvSectionDefaultArgs<ExtArgs>
 }
 export type CvChunkIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -518,6 +597,58 @@ export interface CvChunkDelegate<ExtArgs extends runtime.Types.Extensions.Intern
   findMany<T extends CvChunkFindManyArgs>(args?: Prisma.SelectSubset<T, CvChunkFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CvChunkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
 
   /**
+   * Create a CvChunk.
+   * @param {CvChunkCreateArgs} args - Arguments to create a CvChunk.
+   * @example
+   * // Create one CvChunk
+   * const CvChunk = await prisma.cvChunk.create({
+   *   data: {
+   *     // ... data to create a CvChunk
+   *   }
+   * })
+   * 
+   */
+  create<T extends CvChunkCreateArgs>(args: Prisma.SelectSubset<T, CvChunkCreateArgs<ExtArgs>>): Prisma.Prisma__CvChunkClient<runtime.Types.Result.GetResult<Prisma.$CvChunkPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+  /**
+   * Create many CvChunks.
+   * @param {CvChunkCreateManyArgs} args - Arguments to create many CvChunks.
+   * @example
+   * // Create many CvChunks
+   * const cvChunk = await prisma.cvChunk.createMany({
+   *   data: [
+   *     // ... provide data here
+   *   ]
+   * })
+   *     
+   */
+  createMany<T extends CvChunkCreateManyArgs>(args?: Prisma.SelectSubset<T, CvChunkCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<Prisma.BatchPayload>
+
+  /**
+   * Create many CvChunks and returns the data saved in the database.
+   * @param {CvChunkCreateManyAndReturnArgs} args - Arguments to create many CvChunks.
+   * @example
+   * // Create many CvChunks
+   * const cvChunk = await prisma.cvChunk.createManyAndReturn({
+   *   data: [
+   *     // ... provide data here
+   *   ]
+   * })
+   * 
+   * // Create many CvChunks and only return the `id`
+   * const cvChunkWithIdOnly = await prisma.cvChunk.createManyAndReturn({
+   *   select: { id: true },
+   *   data: [
+   *     // ... provide data here
+   *   ]
+   * })
+   * Note, that providing `undefined` is treated as the value not being there.
+   * Read more here: https://pris.ly/d/null-undefined
+   * 
+   */
+  createManyAndReturn<T extends CvChunkCreateManyAndReturnArgs>(args?: Prisma.SelectSubset<T, CvChunkCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CvChunkPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+  /**
    * Delete a CvChunk.
    * @param {CvChunkDeleteArgs} args - Arguments to delete one CvChunk.
    * @example
@@ -610,6 +741,25 @@ export interface CvChunkDelegate<ExtArgs extends runtime.Types.Extensions.Intern
    * 
    */
   updateManyAndReturn<T extends CvChunkUpdateManyAndReturnArgs>(args: Prisma.SelectSubset<T, CvChunkUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CvChunkPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+  /**
+   * Create or update one CvChunk.
+   * @param {CvChunkUpsertArgs} args - Arguments to update or create a CvChunk.
+   * @example
+   * // Update or create a CvChunk
+   * const cvChunk = await prisma.cvChunk.upsert({
+   *   create: {
+   *     // ... data to create a CvChunk
+   *   },
+   *   update: {
+   *     // ... in case it already exists, update
+   *   },
+   *   where: {
+   *     // ... the filter for the CvChunk we want to update
+   *   }
+   * })
+   */
+  upsert<T extends CvChunkUpsertArgs>(args: Prisma.SelectSubset<T, CvChunkUpsertArgs<ExtArgs>>): Prisma.Prisma__CvChunkClient<runtime.Types.Result.GetResult<Prisma.$CvChunkPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
 
 
   /**
@@ -985,6 +1135,62 @@ export type CvChunkFindManyArgs<ExtArgs extends runtime.Types.Extensions.Interna
 }
 
 /**
+ * CvChunk create
+ */
+export type CvChunkCreateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CvChunk
+   */
+  select?: Prisma.CvChunkSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CvChunk
+   */
+  omit?: Prisma.CvChunkOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CvChunkInclude<ExtArgs> | null
+  /**
+   * The data needed to create a CvChunk.
+   */
+  data: Prisma.XOR<Prisma.CvChunkCreateInput, Prisma.CvChunkUncheckedCreateInput>
+}
+
+/**
+ * CvChunk createMany
+ */
+export type CvChunkCreateManyArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * The data used to create many CvChunks.
+   */
+  data: Prisma.CvChunkCreateManyInput | Prisma.CvChunkCreateManyInput[]
+  skipDuplicates?: boolean
+}
+
+/**
+ * CvChunk createManyAndReturn
+ */
+export type CvChunkCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CvChunk
+   */
+  select?: Prisma.CvChunkSelectCreateManyAndReturn<ExtArgs> | null
+  /**
+   * Omit specific fields from the CvChunk
+   */
+  omit?: Prisma.CvChunkOmit<ExtArgs> | null
+  /**
+   * The data used to create many CvChunks.
+   */
+  data: Prisma.CvChunkCreateManyInput | Prisma.CvChunkCreateManyInput[]
+  skipDuplicates?: boolean
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CvChunkIncludeCreateManyAndReturn<ExtArgs> | null
+}
+
+/**
  * CvChunk update
  */
 export type CvChunkUpdateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1056,6 +1262,36 @@ export type CvChunkUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensi
    * Choose, which related nodes to fetch as well
    */
   include?: Prisma.CvChunkIncludeUpdateManyAndReturn<ExtArgs> | null
+}
+
+/**
+ * CvChunk upsert
+ */
+export type CvChunkUpsertArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CvChunk
+   */
+  select?: Prisma.CvChunkSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CvChunk
+   */
+  omit?: Prisma.CvChunkOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CvChunkInclude<ExtArgs> | null
+  /**
+   * The filter to search for the CvChunk to update in case it exists.
+   */
+  where: Prisma.CvChunkWhereUniqueInput
+  /**
+   * In case the CvChunk found by the `where` argument doesn't exist, create a new CvChunk with this data.
+   */
+  create: Prisma.XOR<Prisma.CvChunkCreateInput, Prisma.CvChunkUncheckedCreateInput>
+  /**
+   * In case the CvChunk was found with the provided `where` argument, update it with this data.
+   */
+  update: Prisma.XOR<Prisma.CvChunkUpdateInput, Prisma.CvChunkUncheckedUpdateInput>
 }
 
 /**

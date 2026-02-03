@@ -56,6 +56,13 @@ export class CvSectioningService {
         /^technologies$/i,
         /^tech\s*stack$/i,
         /^kỹ năng$/i,
+        // Combined sections: Skills & Languages / Languages & Skills (treat as SKILLS so rules don't report "lack skill section")
+        /^skills?\s*[&\/\u2013-]\s*languages?$/i,
+        /^languages?\s*[&\/\u2013-]\s*skills?$/i,
+        /^skills?\s+and\s+languages?$/i,
+        /^languages?\s+and\s+skills?$/i,
+        /^(technical\s*)?skills?\s*[&\/\u2013-]\s*languages?$/i,
+        /^languages?\s*[&\/\u2013-]\s*(technical\s*)?skills?$/i,
       ],
     },
     {

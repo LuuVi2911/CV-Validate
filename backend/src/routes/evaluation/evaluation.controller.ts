@@ -17,6 +17,6 @@ export class EvaluationController {
     @ActiveUser() user: AccessTokenPayload,
     @Body() body: RunEvaluationBodyDTO,
   ): Promise<EvaluationResultDTO> {
-    return await this.evaluationService.runEvaluation(String(user.userId), body.cvId, body.jdId)
+    return await this.evaluationService.runEvaluation(user.userUuid, body.cvId, body.jdId)
   }
 }

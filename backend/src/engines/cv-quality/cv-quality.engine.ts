@@ -2,18 +2,23 @@ import { Injectable } from '@nestjs/common'
 import { CvRepo } from 'src/routes/cv/cv.repo'
 import type { CvQualityResultDTO, CvQualityFindingDTO } from 'src/routes/evaluation/evaluation.dto'
 import type { CvDecisionType, EvidenceType } from 'src/routes/evaluation/evaluation.model'
-import { CV_QUALITY_RULES, CV_QUALITY_RULE_SET_VERSION } from 'src/rules/student-fresher/cv-quality.rules'
+import {
+  CV_STRUCTURAL_RULES,
+  CV_SEMANTIC_RULES,
+  CV_QUALITY_RULE_SET_VERSION,
+} from 'src/rules/student-fresher/cv-quality.rules'
 
 /**
  * CV Quality Engine
  *
  * Responsibilities:
- * - Execute CV quality rule set deterministically
+ * - Execute STRUCTURAL CV quality rules (format/pattern checks)
+ * - SEMANTIC rules are evaluated separately via SemanticEvaluator
  * - Return findings with traceable evidence (chunk-level or section-level)
  * - Enforce MUST_HAVE violations → NOT_READY
  *
  * Forbidden:
- * - Any vector similarity or thresholds
+ * - Keyword-based semantic matching (use embeddings instead)
  * - Any JD logic
  * - Any LLM calls
  */
@@ -30,11 +35,16 @@ export class CvQualityEngine {
 
     const findings: CvQualityFindingDTO[] = []
 
-    // Execute each rule
-    for (const rule of CV_QUALITY_RULES) {
+    // Execute only STRUCTURAL rules (which have evaluate functions)
+    // SEMANTIC rules are evaluated via SemanticEvaluator with embedded rules
+    for (const rule of CV_STRUCTURAL_RULES) {
       const result = rule.evaluate(cv)
       findings.push(result)
     }
+
+    // Note: SEMANTIC rules (CV_SEMANTIC_RULES) should be evaluated via SemanticEvaluator
+    // and merged with findings. For now, we skip them here as they require
+    // PDF-ingested rules and embedding comparison.
 
     // Separate findings by category
     const mustHaveViolations = findings.filter((f) => f.category === 'MUST_HAVE' && !f.passed)

@@ -30,8 +30,8 @@ const configSchema = z.object({
   SIM_HIGH_THRESHOLD: z.coerce.number().default(0.75),
   LLM_JUDGE_ENABLED: z
     .string()
-    .transform((v) => v === 'true')
-    .default('false'),
+    .default('false')
+    .transform((v) => v === 'true'),
 })
 
 const configServer = configSchema.safeParse(process.env)

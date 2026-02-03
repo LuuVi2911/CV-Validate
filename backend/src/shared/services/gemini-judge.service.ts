@@ -42,7 +42,7 @@ export interface JudgeResponse {
 @Injectable()
 export class GeminiJudgeService {
   private genAI: GoogleGenerativeAI | null = null
-  private readonly model = 'gemini-1.5-flash' // Fast model for judge decisions
+  private readonly model = 'gemini-2.5-flash'
 
   constructor() {
     if (envConfig.GEMINI_API_KEY) {

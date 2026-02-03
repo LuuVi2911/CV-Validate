@@ -78,6 +78,21 @@ export type JDRule = Prisma.JDRuleModel
  */
 export type JDRuleChunk = Prisma.JDRuleChunkModel
 /**
+ * Model RuleSet
+ * 
+ */
+export type RuleSet = Prisma.RuleSetModel
+/**
+ * Model CvQualityRule
+ * 
+ */
+export type CvQualityRule = Prisma.CvQualityRuleModel
+/**
+ * Model CvQualityRuleChunk
+ * 
+ */
+export type CvQualityRuleChunk = Prisma.CvQualityRuleChunkModel
+/**
  * Model RefreshToken
  * 
  */

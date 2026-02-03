@@ -11,6 +11,7 @@ import { JdRuleExtractionService } from 'src/shared/services/jd-rule-extraction.
 import { JdRuleChunkingService } from 'src/shared/services/jd-rule-chunking.service'
 import { VectorSearchService } from 'src/shared/services/vector-search.service'
 import { GeminiJudgeService } from 'src/shared/services/gemini-judge.service'
+import { RuleIngestionService } from 'src/shared/services/rule-ingestion.service'
 import { AccessTokenGuard } from 'src/shared/guard/access-token.guard'
 import { AuthenticationGuard } from 'src/shared/guard/authentication.guard'
 import { APP_GUARD } from '@nestjs/core'
@@ -29,6 +30,7 @@ const sharedServices = [
   JdRuleChunkingService,
   VectorSearchService,
   GeminiJudgeService,
+  RuleIngestionService,
 ]
 @Global()
 @Module({

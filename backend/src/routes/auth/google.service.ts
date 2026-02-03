@@ -80,6 +80,7 @@ export class GoogleService {
     return this.authService.generateTokens(
       {
         userId: userIdNumber,
+        userUuid: user.id,
         deviceId: 0,
         roleId: 0,
         roleName: 'user',

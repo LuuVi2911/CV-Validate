@@ -1,12 +1,53 @@
 import { Injectable } from '@nestjs/common'
-import { RuleType } from 'src/generated/prisma/enums'
+import { RuleType, JDParagraphType } from 'src/generated/prisma/enums'
 import { RULE_TYPE_CUE_PHRASES } from 'src/rules/student-fresher/jd-matching.rules'
 
 export interface ExtractedRule {
   content: string
   ruleType: RuleType
+  paragraphType: JDParagraphType
+  ignored: boolean
   originalText: string
 }
+
+/**
+ * JD Paragraph Classification Cues
+ * Used for noise filtering - to ignore BENEFITS/COMPANY/PROCESS paragraphs
+ */
+const PARAGRAPH_CLASSIFICATION_CUES = {
+  REQUIREMENTS: [
+    'must', 'required', 'minimum', 'you have', 'qualifications',
+    'requirements', 'essential', 'mandatory', 'you need', 'you should have',
+    'degree in', 'years of experience', 'proficient in', 'strong knowledge',
+  ],
+  RESPONSIBILITIES: [
+    'you will', 'responsibilities', 'role includes', 'contribute to',
+    'duties', 'you are responsible', 'your tasks', 'accountable for',
+    'work with', 'collaborate with', 'lead', 'manage', 'develop',
+  ],
+  NICE_TO_HAVE: [
+    'preferred', 'bonus', 'plus', 'nice to have', 'ideal',
+    'advantageous', 'desirable', 'would be a plus', 'familiarity with',
+    'exposure to', 'knowledge of', 'experience with',
+  ],
+  BENEFITS: [
+    'salary', 'benefits', 'healthcare', 'insurance', 'vacation',
+    'pto', 'paid time off', 'bonus', 'stock', 'equity', 'compensation',
+    'perks', '401k', 'retirement', 'dental', 'vision', 'medical',
+    'we offer', 'what we offer', 'what you get', 'package includes',
+  ],
+  COMPANY: [
+    'culture', 'inclusive', 'diversity', 'about us', 'who we are',
+    'our company', 'our mission', 'our values', 'founded in',
+    'headquartered', 'employees', 'our team', 'we believe',
+    'equal opportunity', 'eoe', 'employer', 'workplace',
+  ],
+  PROCESS: [
+    'deadline', 'recruitment process', 'apply by', 'application deadline',
+    'interview', 'screening', 'assessment', 'how to apply',
+    'next steps', 'contact us', 'questions', 'reach out',
+  ],
+} as const
 
 /**
  * JdRuleExtractionService - Stage 9
@@ -27,19 +68,83 @@ export interface ExtractedRule {
 export class JdRuleExtractionService {
   /**
    * Extract rules from JD text deterministically
+   * With noise filtering: BENEFITS/COMPANY/PROCESS paragraphs are marked as ignored
    * @param text Raw JD text
-   * @returns Array of extracted rules with their types
+   * @returns Array of extracted rules with their types and paragraph classification
    */
   extractRules(text: string): ExtractedRule[] {
     // Normalize and split into statements
     const statements = this.splitIntoStatements(text)
 
-    // Classify each statement into a rule type
-    return statements.map((statement) => ({
-      content: this.normalizeContent(statement),
-      ruleType: this.classifyRuleType(statement),
-      originalText: statement,
-    }))
+    // Classify each statement into a rule type and paragraph type
+    return statements.map((statement) => {
+      const paragraphType = this.classifyParagraphType(statement)
+      const ignored = this.isIgnoredParagraphType(paragraphType)
+
+      return {
+        content: this.normalizeContent(statement),
+        ruleType: ignored ? RuleType.BEST_PRACTICE : this.classifyRuleType(statement),
+        paragraphType,
+        ignored,
+        originalText: statement,
+      }
+    })
+  }
+
+  /**
+   * Extract only non-ignored rules (for JD matching)
+   */
+  extractValidRules(text: string): ExtractedRule[] {
+    return this.extractRules(text).filter((rule) => !rule.ignored)
+  }
+
+  /**
+   * Classify paragraph type for noise filtering
+   */
+  private classifyParagraphType(statement: string): JDParagraphType {
+    const lower = statement.toLowerCase()
+
+    // Check each category in order of specificity
+    // Benefits/Company/Process should be checked first as they are noise
+    for (const phrase of PARAGRAPH_CLASSIFICATION_CUES.BENEFITS) {
+      if (lower.includes(phrase)) return JDParagraphType.BENEFITS
+    }
+
+    for (const phrase of PARAGRAPH_CLASSIFICATION_CUES.COMPANY) {
+      if (lower.includes(phrase)) return JDParagraphType.COMPANY
+    }
+
+    for (const phrase of PARAGRAPH_CLASSIFICATION_CUES.PROCESS) {
+      if (lower.includes(phrase)) return JDParagraphType.PROCESS
+    }
+
+    // Now check the valid categories
+    for (const phrase of PARAGRAPH_CLASSIFICATION_CUES.REQUIREMENTS) {
+      if (lower.includes(phrase)) return JDParagraphType.REQUIREMENTS
+    }
+
+    for (const phrase of PARAGRAPH_CLASSIFICATION_CUES.RESPONSIBILITIES) {
+      if (lower.includes(phrase)) return JDParagraphType.RESPONSIBILITIES
+    }
+
+    for (const phrase of PARAGRAPH_CLASSIFICATION_CUES.NICE_TO_HAVE) {
+      if (lower.includes(phrase)) return JDParagraphType.NICE_TO_HAVE
+    }
+
+    // Default: unknown (will be kept, not ignored)
+    return JDParagraphType.UNKNOWN
+  }
+
+  /**
+   * Check if a paragraph type should be ignored
+   */
+  private isIgnoredParagraphType(paragraphType: JDParagraphType): boolean {
+    const ignoredTypes: JDParagraphType[] = [
+      JDParagraphType.BENEFITS,
+      JDParagraphType.COMPANY,
+      JDParagraphType.PROCESS,
+    ]
+    return ignoredTypes.includes(paragraphType)
   }
 
   /**

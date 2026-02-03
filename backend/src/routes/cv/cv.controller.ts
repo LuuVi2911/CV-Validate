@@ -40,27 +40,27 @@ export class CvController {
     )
     file: Express.Multer.File,
   ): Promise<CvUploadResponseDTO> {
-    return await this.cvService.uploadCv(String(user.userId), file)
+    return await this.cvService.uploadCv(user.userUuid, file)
   }
 
   @Get()
   @Auth([AuthType.Bearer])
   @HttpCode(HttpStatus.OK)
   async listCvs(@ActiveUser() user: AccessTokenPayload): Promise<CvListResponseDTO> {
-    return await this.cvService.listCvs(String(user.userId))
+    return await this.cvService.listCvs(user.userUuid)
   }
 
   @Get(':cvId')
   @Auth([AuthType.Bearer])
   @HttpCode(HttpStatus.OK)
   async getCvById(@ActiveUser() user: AccessTokenPayload, @Param('cvId') cvId: string): Promise<CvDetailResponseDTO> {
-    return await this.cvService.getCvById(String(user.userId), cvId)
+    return await this.cvService.getCvById(user.userUuid, cvId)
   }
 
   @Delete(':cvId')
   @Auth([AuthType.Bearer])
   @HttpCode(HttpStatus.OK)
   async deleteCv(@ActiveUser() user: AccessTokenPayload, @Param('cvId') cvId: string) {
-    return await this.cvService.deleteCv(String(user.userId), cvId)
+    return await this.cvService.deleteCv(user.userUuid, cvId)
   }
 }

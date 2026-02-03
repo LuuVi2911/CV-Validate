@@ -107,12 +107,15 @@ export class CvRepo {
   }
 
   async findChunksWithoutEmbedding(cvId: string) {
-    return this.prisma.cvChunk.findMany({
-      where: {
-        section: { cvId },
-        embedding: null,
-      },
-    })
+    // `embedding` is a pgvector Unsupported field, so Prisma can't filter on it.
+    return this.prisma.$queryRaw<Array<{ id: string; sectionId: string; order: number; content: string }>>`
+      SELECT c.id, c."sectionId", c."order", c.content
+      FROM "CvChunk" c
+      JOIN "CvSection" s ON s.id = c."sectionId"
+      WHERE s."cvId" = ${cvId}
+        AND c.embedding IS NULL
+      ORDER BY s."order" ASC, c."order" ASC
+    `
   }
 
   async deleteCv(cvId: string) {

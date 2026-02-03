@@ -405,6 +405,12 @@ export type IntFieldUpdateOperationsInput = {
   divide?: number
 }
 
+export type CvSectionCreateNestedOneWithoutChunksInput = {
+  create?: Prisma.XOR<Prisma.CvSectionCreateWithoutChunksInput, Prisma.CvSectionUncheckedCreateWithoutChunksInput>
+  connectOrCreate?: Prisma.CvSectionCreateOrConnectWithoutChunksInput
+  connect?: Prisma.CvSectionWhereUniqueInput
+}
+
 export type CvSectionUpdateOneRequiredWithoutChunksNestedInput = {
   create?: Prisma.XOR<Prisma.CvSectionCreateWithoutChunksInput, Prisma.CvSectionUncheckedCreateWithoutChunksInput>
   connectOrCreate?: Prisma.CvSectionCreateOrConnectWithoutChunksInput

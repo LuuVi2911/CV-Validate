@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common'
 import { Resend } from 'resend'
 import envConfig from '../config'
 import { VerificationCodeType } from '../constants/auth.constant'
+import fs from 'fs'
+import path from 'path'
 
 @Injectable()
 export class EmailService {
@@ -11,7 +13,7 @@ export class EmailService {
   constructor() {
     this.resend = new Resend(envConfig.RESEND_API_KEY)
     // You can set this from env or use a default
-    this.fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
+    this.fromEmail = process.env.RESEND_FROM_EMAIL || 'CV Enhancer <onboarding@resend.dev>'
   }
 
   /**
@@ -21,132 +23,96 @@ export class EmailService {
    * @param type Type of verification (EMAIL_VERIFICATION or FORGOT_PASSWORD)
    */
   async sendOTPCode(email: string, otpCode: string, type: VerificationCodeType): Promise<void> {
-    const { subject, html } = this.getEmailTemplate(otpCode, type)
+    const subject = this.getEmailSubject(type)
+    let html: string
 
-    await this.resend.emails.send({
-      from: this.fromEmail,
-      to: email,
-      subject,
-      html,
-    })
-  }
+    // If reading / rendering the template fails, log it explicitly (otherwise it looks like "EmailService wasn't called").
+    try {
+      html = this.renderOtpHtml({ otpCode, title: subject, type })
+    } catch (err) {
+      const error = err as any
+      console.error('[EmailService] Failed to render otp.html', {
+        to: email,
+        from: this.fromEmail,
+        subject,
+        name: error?.name,
+        message: error?.message,
+      })
+      throw err
+    }
 
-  /**
-   * Gets the appropriate email template based on verification type
-   */
-  private getEmailTemplate(otpCode: string, type: VerificationCodeType): { subject: string; html: string } {
-    if (type === 'FORGOT_PASSWORD') {
-      return {
-        subject: 'Reset Your Password - Verification Code',
-        html: this.getForgotPasswordTemplate(otpCode),
+    // Resend SDK returns { data, error } (it may not throw). Handle + log both cases.
+    try {
+      const result = await this.resend.emails.send({
+        from: this.fromEmail,
+        to: [email],
+        subject,
+        html,
+      })
+
+      const resendError = (result as any)?.error
+      if (resendError) {
+        console.error('[EmailService] Resend send error', {
+          to: email,
+          from: this.fromEmail,
+          subject,
+          statusCode: resendError?.statusCode,
+          message: resendError?.message,
+          name: resendError?.name,
+        })
+        throw new Error(`send failed: ${resendError?.message ?? 'unknown resend error'}`)
       }
-    }
-
-    return {
-      subject: 'Verify Your Email Address',
-      html: this.getEmailVerificationTemplate(otpCode),
+    } catch (err) {
+      // Helpful debug logging (avoid printing secrets)
+      const error = err as any
+      console.error('[EmailService] Resend send threw', {
+        to: email,
+        from: this.fromEmail,
+        subject,
+        name: error?.name,
+        message: error?.message,
+        statusCode: error?.statusCode,
+        details: error?.details,
+        response: error?.response,
+      })
+      throw err
     }
   }
 
   /**
-   * HTML template for email verification
+   * Gets the appropriate email subject based on verification type
    */
-  private getEmailVerificationTemplate(otpCode: string): string {
-    return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verify Your Email</title>
-</head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f4;">
-    <table role="presentation" style="width: 100%; border-collapse: collapse;">
-        <tr>
-            <td style="padding: 40px 20px;">
-                <table role="presentation" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                    <tr>
-                        <td style="padding: 40px 30px; text-align: center;">
-                            <h1 style="margin: 0 0 20px 0; color: #333333; font-size: 28px; font-weight: 600;">
-                                Verify Your Email Address
-                            </h1>
-                            <p style="margin: 0 0 30px 0; color: #666666; font-size: 16px; line-height: 1.6;">
-                                Thank you for signing up! Please use the verification code below to verify your email address.
-                            </p>
-                            <div style="background-color: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px; padding: 30px; margin: 30px 0;">
-                                <div style="font-size: 36px; font-weight: 700; letter-spacing: 8px; color: #007bff; font-family: 'Courier New', monospace;">
-                                    ${otpCode}
-                                </div>
-                            </div>
-                            <p style="margin: 30px 0 0 0; color: #999999; font-size: 14px; line-height: 1.5;">
-                                This code will expire in 10 minutes. If you didn't request this code, please ignore this email.
-                            </p>
-                        </td>
-                    </tr>
-                </table>
-                <table role="presentation" style="max-width: 600px; margin: 20px auto 0;">
-                    <tr>
-                        <td style="text-align: center; padding: 20px; color: #999999; font-size: 12px;">
-                            <p style="margin: 0;">This is an automated message, please do not reply.</p>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
-</body>
-</html>
-    `.trim()
+  private getEmailSubject(type: VerificationCodeType): string {
+    if (type === 'FORGOT_PASSWORD') {
+      return 'Reset Your Password - Verification Code'
+    }
+
+    return 'Verify Your Email Address'
   }
 
-  /**
-   * HTML template for forgot password
-   */
-  private getForgotPasswordTemplate(otpCode: string): string {
-    return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reset Your Password</title>
-</head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f4;">
-    <table role="presentation" style="width: 100%; border-collapse: collapse;">
-        <tr>
-            <td style="padding: 40px 20px;">
-                <table role="presentation" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                    <tr>
-                        <td style="padding: 40px 30px; text-align: center;">
-                            <h1 style="margin: 0 0 20px 0; color: #333333; font-size: 28px; font-weight: 600;">
-                                Reset Your Password
-                            </h1>
-                            <p style="margin: 0 0 30px 0; color: #666666; font-size: 16px; line-height: 1.6;">
-                                We received a request to reset your password. Use the verification code below to proceed with resetting your password.
-                            </p>
-                            <div style="background-color: #fff3cd; border: 2px dashed #ffc107; border-radius: 8px; padding: 30px; margin: 30px 0;">
-                                <div style="font-size: 36px; font-weight: 700; letter-spacing: 8px; color: #856404; font-family: 'Courier New', monospace;">
-                                    ${otpCode}
-                                </div>
-                            </div>
-                            <p style="margin: 30px 0 0 0; color: #999999; font-size: 14px; line-height: 1.5;">
-                                This code will expire in 10 minutes. If you didn't request a password reset, please ignore this email and your password will remain unchanged.
-                            </p>
-                        </td>
-                    </tr>
-                </table>
-                <table role="presentation" style="max-width: 600px; margin: 20px auto 0;">
-                    <tr>
-                        <td style="text-align: center; padding: 20px; color: #999999; font-size: 12px;">
-                            <p style="margin: 0;">This is an automated message, please do not reply.</p>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
-</body>
-</html>
-    `.trim()
+  private renderOtpHtml(payload: { otpCode: string; title: string; type: VerificationCodeType }): string {
+    const templatePath = path.resolve(process.cwd(), 'emails', 'otp.html')
+    const template = fs.readFileSync(templatePath, 'utf8')
+
+    const isForgot = payload.type === 'FORGOT_PASSWORD'
+    const message = isForgot
+      ? 'We received a request to reset your password. Use the verification code below to proceed with resetting your password.'
+      : 'Thank you for signing up! Please use the verification code below to verify your email address.'
+
+    const accentColor = isForgot ? '#856404' : '#007bff'
+    const boxBg = isForgot ? '#fff3cd' : '#f8f9fa'
+    const borderColor = isForgot ? '#ffc107' : '#dee2e6'
+    const footer = isForgot
+      ? "This code will expire in 10 minutes. If you didn't request a password reset, please ignore this email and your password will remain unchanged."
+      : "This code will expire in 10 minutes. If you didn't request this code, please ignore this email."
+
+    return template
+      .replaceAll('{{title}}', payload.title)
+      .replaceAll('{{message}}', message)
+      .replaceAll('{{otpCode}}', payload.otpCode)
+      .replaceAll('{{accentColor}}', accentColor)
+      .replaceAll('{{boxBg}}', boxBg)
+      .replaceAll('{{borderColor}}', borderColor)
+      .replaceAll('{{footer}}', footer)
   }
 }

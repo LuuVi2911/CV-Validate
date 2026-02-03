@@ -39,17 +39,16 @@ export class EmbeddingService {
       return { embedded: 0, skipped: 0 }
     }
 
-    // Find chunks without embeddings
-    const chunks = await this.prisma.cvChunk.findMany({
-      where: {
-        section: { cvId },
-        embedding: null,
-      },
-      select: {
-        id: true,
-        content: true,
-      },
-    })
+    // Find chunks without embeddings.
+    // Note: `embedding` is an Unsupported pgvector field, so Prisma can't filter on it.
+    const chunks = await this.prisma.$queryRaw<Array<{ id: string; content: string }>>`
+      SELECT c.id, c.content
+      FROM "CvChunk" c
+      JOIN "CvSection" s ON s.id = c."sectionId"
+      WHERE s."cvId" = ${cvId}
+        AND c.embedding IS NULL
+      ORDER BY s."order" ASC, c."order" ASC
+    `
 
     if (chunks.length === 0) {
       return { embedded: 0, skipped: 0 }
@@ -105,17 +104,16 @@ export class EmbeddingService {
       return { embedded: 0, skipped: 0 }
     }
 
-    // Find chunks without embeddings
-    const chunks = await this.prisma.jDRuleChunk.findMany({
-      where: {
-        rule: { jdId },
-        embedding: null,
-      },
-      select: {
-        id: true,
-        content: true,
-      },
-    })
+    // Find chunks without embeddings.
+    // Note: `embedding` is an Unsupported pgvector field, so Prisma can't filter on it.
+    const chunks = await this.prisma.$queryRaw<Array<{ id: string; content: string }>>`
+      SELECT c.id, c.content
+      FROM "JDRuleChunk" c
+      JOIN "JDRule" r ON r.id = c."ruleId"
+      WHERE r."jdId" = ${jdId}
+        AND c.embedding IS NULL
+      ORDER BY r.id ASC, c.id ASC
+    `
 
     if (chunks.length === 0) {
       return { embedded: 0, skipped: 0 }
@@ -173,7 +171,7 @@ export class EmbeddingService {
 
     const embeddings: number[][] = []
 
-    // Gemini embedding API processes one at a time for text-embedding-004
+    // Gemini embedding API processes one at a time for text-embedding-005
     for (const text of texts) {
       const result = await model.embedContent(text)
       embeddings.push(result.embedding.values)

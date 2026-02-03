@@ -91,12 +91,15 @@ export class JdRepo {
   }
 
   async findChunksWithoutEmbedding(jdId: string) {
-    return this.prisma.jDRuleChunk.findMany({
-      where: {
-        rule: { jdId },
-        embedding: null,
-      },
-    })
+    // `embedding` is a pgvector Unsupported field, so Prisma can't filter on it.
+    return this.prisma.$queryRaw<Array<{ id: string; ruleId: string; content: string }>>`
+      SELECT c.id, c."ruleId", c.content
+      FROM "JDRuleChunk" c
+      JOIN "JDRule" r ON r.id = c."ruleId"
+      WHERE r."jdId" = ${jdId}
+        AND c.embedding IS NULL
+      ORDER BY r.id ASC, c.id ASC
+    `
   }
 
   async deleteJd(jdId: string) {

@@ -30,9 +30,25 @@ export const EmailAlreadyExistsException = new UnprocessableEntityException([
   },
 ])
 
+export const EmailAlreadyRegisteredException = new UnprocessableEntityException([
+  {
+    message: 'Error.EmailAlreadyRegistered',
+    path: 'email',
+  },
+])
+
 export const EmailNotFoundException = new UnprocessableEntityException([
   {
     message: 'Error.EmailNotFound',
+    path: 'email',
+  },
+])
+
+export const EmailNotVerifiedException = new UnauthorizedException('Error.EmailNotVerified')
+
+export const EmailAlreadyVerifiedException = new UnprocessableEntityException([
+  {
+    message: 'Error.EmailAlreadyVerified',
     path: 'email',
   },
 ])
@@ -43,5 +59,3 @@ export const UnauthorizedAccessException = new UnauthorizedException('Error.Unau
 
 // Google auth related errors
 export const GoogleUserInfoError = new Error('Error.FailedToGetGoogleUserInfo')
-
-

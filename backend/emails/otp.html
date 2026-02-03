@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{title}}</title>
+  </head>
+  <body
+    style="
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background-color: #f4f4f4;
+    "
+  >
+    <table role="presentation" style="width: 100%; border-collapse: collapse">
+      <tr>
+        <td style="padding: 40px 20px">
+          <table
+            role="presentation"
+            style="
+              max-width: 600px;
+              margin: 0 auto;
+              background-color: #ffffff;
+              border-radius: 8px;
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            "
+          >
+            <tr>
+              <td style="padding: 40px 30px; text-align: center">
+                <h1 style="margin: 0 0 20px 0; color: #333333; font-size: 28px; font-weight: 600">{{title}}</h1>
+                <p style="margin: 0 0 30px 0; color: #666666; font-size: 16px; line-height: 1.6">{{message}}</p>
+                <div
+                  style="
+                    background-color: {{boxBg}};
+                    border: 2px dashed {{borderColor}};
+                    border-radius: 8px;
+                    padding: 30px;
+                    margin: 30px 0;
+                  "
+                >
+                  <div
+                    style="
+                      font-size: 36px;
+                      font-weight: 700;
+                      letter-spacing: 8px;
+                      color: {{accentColor}};
+                      font-family: 'Courier New', monospace;
+                    "
+                  >
+                    {{otpCode}}
+                  </div>
+                </div>
+                <p style="margin: 30px 0 0 0; color: #999999; font-size: 14px; line-height: 1.5">{{footer}}</p>
+              </td>
+            </tr>
+          </table>
+          <table role="presentation" style="max-width: 600px; margin: 20px auto 0">
+            <tr>
+              <td style="text-align: center; padding: 20px; color: #999999; font-size: 12px">
+                <p style="margin: 0">This is an automated message, please do not reply.</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

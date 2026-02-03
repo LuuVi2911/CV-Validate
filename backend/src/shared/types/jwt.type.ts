@@ -1,5 +1,6 @@
 export interface AccessTokenPayloadCreate {
   userId: number
+  userUuid: string // actual UUID for database operations
   deviceId: number
   roleId: number
   roleName: string

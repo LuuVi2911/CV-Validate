@@ -20,46 +20,82 @@ export type JDRuleChunkModel = runtime.Types.Result.DefaultSelection<Prisma.$JDR
 
 export type AggregateJDRuleChunk = {
   _count: JDRuleChunkCountAggregateOutputType | null
+  _avg: JDRuleChunkAvgAggregateOutputType | null
+  _sum: JDRuleChunkSumAggregateOutputType | null
   _min: JDRuleChunkMinAggregateOutputType | null
   _max: JDRuleChunkMaxAggregateOutputType | null
+}
+
+export type JDRuleChunkAvgAggregateOutputType = {
+  order: number | null
+}
+
+export type JDRuleChunkSumAggregateOutputType = {
+  order: number | null
 }
 
 export type JDRuleChunkMinAggregateOutputType = {
   id: string | null
   ruleId: string | null
+  chunkKey: string | null
+  order: number | null
   content: string | null
+  contentHash: string | null
 }
 
 export type JDRuleChunkMaxAggregateOutputType = {
   id: string | null
   ruleId: string | null
+  chunkKey: string | null
+  order: number | null
   content: string | null
+  contentHash: string | null
 }
 
 export type JDRuleChunkCountAggregateOutputType = {
   id: number
   ruleId: number
+  chunkKey: number
+  order: number
   content: number
+  contentHash: number
   _all: number
 }
 
 
+export type JDRuleChunkAvgAggregateInputType = {
+  order?: true
+}
+
+export type JDRuleChunkSumAggregateInputType = {
+  order?: true
+}
+
 export type JDRuleChunkMinAggregateInputType = {
   id?: true
   ruleId?: true
+  chunkKey?: true
+  order?: true
   content?: true
+  contentHash?: true
 }
 
 export type JDRuleChunkMaxAggregateInputType = {
   id?: true
   ruleId?: true
+  chunkKey?: true
+  order?: true
   content?: true
+  contentHash?: true
 }
 
 export type JDRuleChunkCountAggregateInputType = {
   id?: true
   ruleId?: true
+  chunkKey?: true
+  order?: true
   content?: true
+  contentHash?: true
   _all?: true
 }
 
@@ -101,6 +137,18 @@ export type JDRuleChunkAggregateArgs<ExtArgs extends runtime.Types.Extensions.In
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
+   * Select which fields to average
+  **/
+  _avg?: JDRuleChunkAvgAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
+   * Select which fields to sum
+  **/
+  _sum?: JDRuleChunkSumAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
    * Select which fields to find the minimum value
   **/
   _min?: JDRuleChunkMinAggregateInputType
@@ -131,6 +179,8 @@ export type JDRuleChunkGroupByArgs<ExtArgs extends runtime.Types.Extensions.Inte
   take?: number
   skip?: number
   _count?: JDRuleChunkCountAggregateInputType | true
+  _avg?: JDRuleChunkAvgAggregateInputType
+  _sum?: JDRuleChunkSumAggregateInputType
   _min?: JDRuleChunkMinAggregateInputType
   _max?: JDRuleChunkMaxAggregateInputType
 }
@@ -138,8 +188,13 @@ export type JDRuleChunkGroupByArgs<ExtArgs extends runtime.Types.Extensions.Inte
 export type JDRuleChunkGroupByOutputType = {
   id: string
   ruleId: string
+  chunkKey: string | null
+  order: number
   content: string
+  contentHash: string | null
   _count: JDRuleChunkCountAggregateOutputType | null
+  _avg: JDRuleChunkAvgAggregateOutputType | null
+  _sum: JDRuleChunkSumAggregateOutputType | null
   _min: JDRuleChunkMinAggregateOutputType | null
   _max: JDRuleChunkMaxAggregateOutputType | null
 }
@@ -165,14 +220,20 @@ export type JDRuleChunkWhereInput = {
   NOT?: Prisma.JDRuleChunkWhereInput | Prisma.JDRuleChunkWhereInput[]
   id?: Prisma.StringFilter<"JDRuleChunk"> | string
   ruleId?: Prisma.StringFilter<"JDRuleChunk"> | string
+  chunkKey?: Prisma.StringNullableFilter<"JDRuleChunk"> | string | null
+  order?: Prisma.IntFilter<"JDRuleChunk"> | number
   content?: Prisma.StringFilter<"JDRuleChunk"> | string
+  contentHash?: Prisma.StringNullableFilter<"JDRuleChunk"> | string | null
   rule?: Prisma.XOR<Prisma.JDRuleScalarRelationFilter, Prisma.JDRuleWhereInput>
 }
 
 export type JDRuleChunkOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   ruleId?: Prisma.SortOrder
+  chunkKey?: Prisma.SortOrderInput | Prisma.SortOrder
+  order?: Prisma.SortOrder
   content?: Prisma.SortOrder
+  contentHash?: Prisma.SortOrderInput | Prisma.SortOrder
   rule?: Prisma.JDRuleOrderByWithRelationInput
 }
 
@@ -182,17 +243,25 @@ export type JDRuleChunkWhereUniqueInput = Prisma.AtLeast<{
   OR?: Prisma.JDRuleChunkWhereInput[]
   NOT?: Prisma.JDRuleChunkWhereInput | Prisma.JDRuleChunkWhereInput[]
   ruleId?: Prisma.StringFilter<"JDRuleChunk"> | string
+  chunkKey?: Prisma.StringNullableFilter<"JDRuleChunk"> | string | null
+  order?: Prisma.IntFilter<"JDRuleChunk"> | number
   content?: Prisma.StringFilter<"JDRuleChunk"> | string
+  contentHash?: Prisma.StringNullableFilter<"JDRuleChunk"> | string | null
   rule?: Prisma.XOR<Prisma.JDRuleScalarRelationFilter, Prisma.JDRuleWhereInput>
 }, "id">
 
 export type JDRuleChunkOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   ruleId?: Prisma.SortOrder
+  chunkKey?: Prisma.SortOrderInput | Prisma.SortOrder
+  order?: Prisma.SortOrder
   content?: Prisma.SortOrder
+  contentHash?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.JDRuleChunkCountOrderByAggregateInput
+  _avg?: Prisma.JDRuleChunkAvgOrderByAggregateInput
   _max?: Prisma.JDRuleChunkMaxOrderByAggregateInput
   _min?: Prisma.JDRuleChunkMinOrderByAggregateInput
+  _sum?: Prisma.JDRuleChunkSumOrderByAggregateInput
 }
 
 export type JDRuleChunkScalarWhereWithAggregatesInput = {
@@ -201,30 +270,72 @@ export type JDRuleChunkScalarWhereWithAggregatesInput = {
   NOT?: Prisma.JDRuleChunkScalarWhereWithAggregatesInput | Prisma.JDRuleChunkScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"JDRuleChunk"> | string
   ruleId?: Prisma.StringWithAggregatesFilter<"JDRuleChunk"> | string
+  chunkKey?: Prisma.StringNullableWithAggregatesFilter<"JDRuleChunk"> | string | null
+  order?: Prisma.IntWithAggregatesFilter<"JDRuleChunk"> | number
   content?: Prisma.StringWithAggregatesFilter<"JDRuleChunk"> | string
+  contentHash?: Prisma.StringNullableWithAggregatesFilter<"JDRuleChunk"> | string | null
+}
+
+export type JDRuleChunkCreateInput = {
+  id?: string
+  chunkKey?: string | null
+  order?: number
+  content: string
+  contentHash?: string | null
+  rule: Prisma.JDRuleCreateNestedOneWithoutChunksInput
+}
+
+export type JDRuleChunkUncheckedCreateInput = {
+  id?: string
+  ruleId: string
+  chunkKey?: string | null
+  order?: number
+  content: string
+  contentHash?: string | null
 }
 
 export type JDRuleChunkUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  chunkKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  order?: Prisma.IntFieldUpdateOperationsInput | number
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   rule?: Prisma.JDRuleUpdateOneRequiredWithoutChunksNestedInput
 }
 
 export type JDRuleChunkUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   ruleId?: Prisma.StringFieldUpdateOperationsInput | string
+  chunkKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  order?: Prisma.IntFieldUpdateOperationsInput | number
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+}
+
+export type JDRuleChunkCreateManyInput = {
+  id?: string
+  ruleId: string
+  chunkKey?: string | null
+  order?: number
+  content: string
+  contentHash?: string | null
 }
 
 export type JDRuleChunkUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  chunkKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  order?: Prisma.IntFieldUpdateOperationsInput | number
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type JDRuleChunkUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   ruleId?: Prisma.StringFieldUpdateOperationsInput | string
+  chunkKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  order?: Prisma.IntFieldUpdateOperationsInput | number
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type JDRuleChunkListRelationFilter = {
@@ -240,30 +351,57 @@ export type JDRuleChunkOrderByRelationAggregateInput = {
 export type JDRuleChunkCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   ruleId?: Prisma.SortOrder
+  chunkKey?: Prisma.SortOrder
+  order?: Prisma.SortOrder
   content?: Prisma.SortOrder
+  contentHash?: Prisma.SortOrder
+}
+
+export type JDRuleChunkAvgOrderByAggregateInput = {
+  order?: Prisma.SortOrder
 }
 
 export type JDRuleChunkMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   ruleId?: Prisma.SortOrder
+  chunkKey?: Prisma.SortOrder
+  order?: Prisma.SortOrder
   content?: Prisma.SortOrder
+  contentHash?: Prisma.SortOrder
 }
 
 export type JDRuleChunkMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   ruleId?: Prisma.SortOrder
+  chunkKey?: Prisma.SortOrder
+  order?: Prisma.SortOrder
   content?: Prisma.SortOrder
+  contentHash?: Prisma.SortOrder
+}
+
+export type JDRuleChunkSumOrderByAggregateInput = {
+  order?: Prisma.SortOrder
 }
 
 export type JDRuleChunkCreateNestedManyWithoutRuleInput = {
+  create?: Prisma.XOR<Prisma.JDRuleChunkCreateWithoutRuleInput, Prisma.JDRuleChunkUncheckedCreateWithoutRuleInput> | Prisma.JDRuleChunkCreateWithoutRuleInput[] | Prisma.JDRuleChunkUncheckedCreateWithoutRuleInput[]
+  connectOrCreate?: Prisma.JDRuleChunkCreateOrConnectWithoutRuleInput | Prisma.JDRuleChunkCreateOrConnectWithoutRuleInput[]
+  createMany?: Prisma.JDRuleChunkCreateManyRuleInputEnvelope
   connect?: Prisma.JDRuleChunkWhereUniqueInput | Prisma.JDRuleChunkWhereUniqueInput[]
 }
 
 export type JDRuleChunkUncheckedCreateNestedManyWithoutRuleInput = {
+  create?: Prisma.XOR<Prisma.JDRuleChunkCreateWithoutRuleInput, Prisma.JDRuleChunkUncheckedCreateWithoutRuleInput> | Prisma.JDRuleChunkCreateWithoutRuleInput[] | Prisma.JDRuleChunkUncheckedCreateWithoutRuleInput[]
+  connectOrCreate?: Prisma.JDRuleChunkCreateOrConnectWithoutRuleInput | Prisma.JDRuleChunkCreateOrConnectWithoutRuleInput[]
+  createMany?: Prisma.JDRuleChunkCreateManyRuleInputEnvelope
   connect?: Prisma.JDRuleChunkWhereUniqueInput | Prisma.JDRuleChunkWhereUniqueInput[]
 }
 
 export type JDRuleChunkUpdateManyWithoutRuleNestedInput = {
+  create?: Prisma.XOR<Prisma.JDRuleChunkCreateWithoutRuleInput, Prisma.JDRuleChunkUncheckedCreateWithoutRuleInput> | Prisma.JDRuleChunkCreateWithoutRuleInput[] | Prisma.JDRuleChunkUncheckedCreateWithoutRuleInput[]
+  connectOrCreate?: Prisma.JDRuleChunkCreateOrConnectWithoutRuleInput | Prisma.JDRuleChunkCreateOrConnectWithoutRuleInput[]
+  upsert?: Prisma.JDRuleChunkUpsertWithWhereUniqueWithoutRuleInput | Prisma.JDRuleChunkUpsertWithWhereUniqueWithoutRuleInput[]
+  createMany?: Prisma.JDRuleChunkCreateManyRuleInputEnvelope
   set?: Prisma.JDRuleChunkWhereUniqueInput | Prisma.JDRuleChunkWhereUniqueInput[]
   disconnect?: Prisma.JDRuleChunkWhereUniqueInput | Prisma.JDRuleChunkWhereUniqueInput[]
   delete?: Prisma.JDRuleChunkWhereUniqueInput | Prisma.JDRuleChunkWhereUniqueInput[]
@@ -274,6 +412,10 @@ export type JDRuleChunkUpdateManyWithoutRuleNestedInput = {
 }
 
 export type JDRuleChunkUncheckedUpdateManyWithoutRuleNestedInput = {
+  create?: Prisma.XOR<Prisma.JDRuleChunkCreateWithoutRuleInput, Prisma.JDRuleChunkUncheckedCreateWithoutRuleInput> | Prisma.JDRuleChunkCreateWithoutRuleInput[] | Prisma.JDRuleChunkUncheckedCreateWithoutRuleInput[]
+  connectOrCreate?: Prisma.JDRuleChunkCreateOrConnectWithoutRuleInput | Prisma.JDRuleChunkCreateOrConnectWithoutRuleInput[]
+  upsert?: Prisma.JDRuleChunkUpsertWithWhereUniqueWithoutRuleInput | Prisma.JDRuleChunkUpsertWithWhereUniqueWithoutRuleInput[]
+  createMany?: Prisma.JDRuleChunkCreateManyRuleInputEnvelope
   set?: Prisma.JDRuleChunkWhereUniqueInput | Prisma.JDRuleChunkWhereUniqueInput[]
   disconnect?: Prisma.JDRuleChunkWhereUniqueInput | Prisma.JDRuleChunkWhereUniqueInput[]
   delete?: Prisma.JDRuleChunkWhereUniqueInput | Prisma.JDRuleChunkWhereUniqueInput[]
@@ -281,6 +423,38 @@ export type JDRuleChunkUncheckedUpdateManyWithoutRuleNestedInput = {
   update?: Prisma.JDRuleChunkUpdateWithWhereUniqueWithoutRuleInput | Prisma.JDRuleChunkUpdateWithWhereUniqueWithoutRuleInput[]
   updateMany?: Prisma.JDRuleChunkUpdateManyWithWhereWithoutRuleInput | Prisma.JDRuleChunkUpdateManyWithWhereWithoutRuleInput[]
   deleteMany?: Prisma.JDRuleChunkScalarWhereInput | Prisma.JDRuleChunkScalarWhereInput[]
+}
+
+export type JDRuleChunkCreateWithoutRuleInput = {
+  id?: string
+  chunkKey?: string | null
+  order?: number
+  content: string
+  contentHash?: string | null
+}
+
+export type JDRuleChunkUncheckedCreateWithoutRuleInput = {
+  id?: string
+  chunkKey?: string | null
+  order?: number
+  content: string
+  contentHash?: string | null
+}
+
+export type JDRuleChunkCreateOrConnectWithoutRuleInput = {
+  where: Prisma.JDRuleChunkWhereUniqueInput
+  create: Prisma.XOR<Prisma.JDRuleChunkCreateWithoutRuleInput, Prisma.JDRuleChunkUncheckedCreateWithoutRuleInput>
+}
+
+export type JDRuleChunkCreateManyRuleInputEnvelope = {
+  data: Prisma.JDRuleChunkCreateManyRuleInput | Prisma.JDRuleChunkCreateManyRuleInput[]
+  skipDuplicates?: boolean
+}
+
+export type JDRuleChunkUpsertWithWhereUniqueWithoutRuleInput = {
+  where: Prisma.JDRuleChunkWhereUniqueInput
+  update: Prisma.XOR<Prisma.JDRuleChunkUpdateWithoutRuleInput, Prisma.JDRuleChunkUncheckedUpdateWithoutRuleInput>
+  create: Prisma.XOR<Prisma.JDRuleChunkCreateWithoutRuleInput, Prisma.JDRuleChunkUncheckedCreateWithoutRuleInput>
 }
 
 export type JDRuleChunkUpdateWithWhereUniqueWithoutRuleInput = {
@@ -299,22 +473,42 @@ export type JDRuleChunkScalarWhereInput = {
   NOT?: Prisma.JDRuleChunkScalarWhereInput | Prisma.JDRuleChunkScalarWhereInput[]
   id?: Prisma.StringFilter<"JDRuleChunk"> | string
   ruleId?: Prisma.StringFilter<"JDRuleChunk"> | string
+  chunkKey?: Prisma.StringNullableFilter<"JDRuleChunk"> | string | null
+  order?: Prisma.IntFilter<"JDRuleChunk"> | number
   content?: Prisma.StringFilter<"JDRuleChunk"> | string
+  contentHash?: Prisma.StringNullableFilter<"JDRuleChunk"> | string | null
+}
+
+export type JDRuleChunkCreateManyRuleInput = {
+  id?: string
+  chunkKey?: string | null
+  order?: number
+  content: string
+  contentHash?: string | null
 }
 
 export type JDRuleChunkUpdateWithoutRuleInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  chunkKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  order?: Prisma.IntFieldUpdateOperationsInput | number
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type JDRuleChunkUncheckedUpdateWithoutRuleInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  chunkKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  order?: Prisma.IntFieldUpdateOperationsInput | number
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type JDRuleChunkUncheckedUpdateManyWithoutRuleInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  chunkKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  order?: Prisma.IntFieldUpdateOperationsInput | number
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 
@@ -322,26 +516,47 @@ export type JDRuleChunkUncheckedUpdateManyWithoutRuleInput = {
 export type JDRuleChunkSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   ruleId?: boolean
+  chunkKey?: boolean
+  order?: boolean
   content?: boolean
+  contentHash?: boolean
   rule?: boolean | Prisma.JDRuleDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["jDRuleChunk"]>
 
+export type JDRuleChunkSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  id?: boolean
+  ruleId?: boolean
+  chunkKey?: boolean
+  order?: boolean
+  content?: boolean
+  contentHash?: boolean
+  rule?: boolean | Prisma.JDRuleDefaultArgs<ExtArgs>
+}, ExtArgs["result"]["jDRuleChunk"]>
 
 export type JDRuleChunkSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   ruleId?: boolean
+  chunkKey?: boolean
+  order?: boolean
   content?: boolean
+  contentHash?: boolean
   rule?: boolean | Prisma.JDRuleDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["jDRuleChunk"]>
 
 export type JDRuleChunkSelectScalar = {
   id?: boolean
   ruleId?: boolean
+  chunkKey?: boolean
+  order?: boolean
   content?: boolean
+  contentHash?: boolean
 }
 
-export type JDRuleChunkOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "ruleId" | "content", ExtArgs["result"]["jDRuleChunk"]>
+export type JDRuleChunkOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "ruleId" | "chunkKey" | "order" | "content" | "contentHash", ExtArgs["result"]["jDRuleChunk"]>
 export type JDRuleChunkInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  rule?: boolean | Prisma.JDRuleDefaultArgs<ExtArgs>
+}
+export type JDRuleChunkIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   rule?: boolean | Prisma.JDRuleDefaultArgs<ExtArgs>
 }
 export type JDRuleChunkIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -356,7 +571,10 @@ export type $JDRuleChunkPayload<ExtArgs extends runtime.Types.Extensions.Interna
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     ruleId: string
+    chunkKey: string | null
+    order: number
     content: string
+    contentHash: string | null
   }, ExtArgs["result"]["jDRuleChunk"]>
   composites: {}
 }
@@ -445,6 +663,58 @@ export interface JDRuleChunkDelegate<ExtArgs extends runtime.Types.Extensions.In
    * 
    */
   findMany<T extends JDRuleChunkFindManyArgs>(args?: Prisma.SelectSubset<T, JDRuleChunkFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$JDRuleChunkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+  /**
+   * Create a JDRuleChunk.
+   * @param {JDRuleChunkCreateArgs} args - Arguments to create a JDRuleChunk.
+   * @example
+   * // Create one JDRuleChunk
+   * const JDRuleChunk = await prisma.jDRuleChunk.create({
+   *   data: {
+   *     // ... data to create a JDRuleChunk
+   *   }
+   * })
+   * 
+   */
+  create<T extends JDRuleChunkCreateArgs>(args: Prisma.SelectSubset<T, JDRuleChunkCreateArgs<ExtArgs>>): Prisma.Prisma__JDRuleChunkClient<runtime.Types.Result.GetResult<Prisma.$JDRuleChunkPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+  /**
+   * Create many JDRuleChunks.
+   * @param {JDRuleChunkCreateManyArgs} args - Arguments to create many JDRuleChunks.
+   * @example
+   * // Create many JDRuleChunks
+   * const jDRuleChunk = await prisma.jDRuleChunk.createMany({
+   *   data: [
+   *     // ... provide data here
+   *   ]
+   * })
+   *     
+   */
+  createMany<T extends JDRuleChunkCreateManyArgs>(args?: Prisma.SelectSubset<T, JDRuleChunkCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<Prisma.BatchPayload>
+
+  /**
+   * Create many JDRuleChunks and returns the data saved in the database.
+   * @param {JDRuleChunkCreateManyAndReturnArgs} args - Arguments to create many JDRuleChunks.
+   * @example
+   * // Create many JDRuleChunks
+   * const jDRuleChunk = await prisma.jDRuleChunk.createManyAndReturn({
+   *   data: [
+   *     // ... provide data here
+   *   ]
+   * })
+   * 
+   * // Create many JDRuleChunks and only return the `id`
+   * const jDRuleChunkWithIdOnly = await prisma.jDRuleChunk.createManyAndReturn({
+   *   select: { id: true },
+   *   data: [
+   *     // ... provide data here
+   *   ]
+   * })
+   * Note, that providing `undefined` is treated as the value not being there.
+   * Read more here: https://pris.ly/d/null-undefined
+   * 
+   */
+  createManyAndReturn<T extends JDRuleChunkCreateManyAndReturnArgs>(args?: Prisma.SelectSubset<T, JDRuleChunkCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$JDRuleChunkPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
 
   /**
    * Delete a JDRuleChunk.
@@ -539,6 +809,25 @@ export interface JDRuleChunkDelegate<ExtArgs extends runtime.Types.Extensions.In
    * 
    */
   updateManyAndReturn<T extends JDRuleChunkUpdateManyAndReturnArgs>(args: Prisma.SelectSubset<T, JDRuleChunkUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$JDRuleChunkPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+  /**
+   * Create or update one JDRuleChunk.
+   * @param {JDRuleChunkUpsertArgs} args - Arguments to update or create a JDRuleChunk.
+   * @example
+   * // Update or create a JDRuleChunk
+   * const jDRuleChunk = await prisma.jDRuleChunk.upsert({
+   *   create: {
+   *     // ... data to create a JDRuleChunk
+   *   },
+   *   update: {
+   *     // ... in case it already exists, update
+   *   },
+   *   where: {
+   *     // ... the filter for the JDRuleChunk we want to update
+   *   }
+   * })
+   */
+  upsert<T extends JDRuleChunkUpsertArgs>(args: Prisma.SelectSubset<T, JDRuleChunkUpsertArgs<ExtArgs>>): Prisma.Prisma__JDRuleChunkClient<runtime.Types.Result.GetResult<Prisma.$JDRuleChunkPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
 
 
   /**
@@ -712,7 +1001,10 @@ export interface Prisma__JDRuleChunkClient<T, Null = never, ExtArgs extends runt
 export interface JDRuleChunkFieldRefs {
   readonly id: Prisma.FieldRef<"JDRuleChunk", 'String'>
   readonly ruleId: Prisma.FieldRef<"JDRuleChunk", 'String'>
+  readonly chunkKey: Prisma.FieldRef<"JDRuleChunk", 'String'>
+  readonly order: Prisma.FieldRef<"JDRuleChunk", 'Int'>
   readonly content: Prisma.FieldRef<"JDRuleChunk", 'String'>
+  readonly contentHash: Prisma.FieldRef<"JDRuleChunk", 'String'>
 }
     
 
@@ -913,6 +1205,62 @@ export type JDRuleChunkFindManyArgs<ExtArgs extends runtime.Types.Extensions.Int
 }
 
 /**
+ * JDRuleChunk create
+ */
+export type JDRuleChunkCreateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the JDRuleChunk
+   */
+  select?: Prisma.JDRuleChunkSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the JDRuleChunk
+   */
+  omit?: Prisma.JDRuleChunkOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.JDRuleChunkInclude<ExtArgs> | null
+  /**
+   * The data needed to create a JDRuleChunk.
+   */
+  data: Prisma.XOR<Prisma.JDRuleChunkCreateInput, Prisma.JDRuleChunkUncheckedCreateInput>
+}
+
+/**
+ * JDRuleChunk createMany
+ */
+export type JDRuleChunkCreateManyArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * The data used to create many JDRuleChunks.
+   */
+  data: Prisma.JDRuleChunkCreateManyInput | Prisma.JDRuleChunkCreateManyInput[]
+  skipDuplicates?: boolean
+}
+
+/**
+ * JDRuleChunk createManyAndReturn
+ */
+export type JDRuleChunkCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the JDRuleChunk
+   */
+  select?: Prisma.JDRuleChunkSelectCreateManyAndReturn<ExtArgs> | null
+  /**
+   * Omit specific fields from the JDRuleChunk
+   */
+  omit?: Prisma.JDRuleChunkOmit<ExtArgs> | null
+  /**
+   * The data used to create many JDRuleChunks.
+   */
+  data: Prisma.JDRuleChunkCreateManyInput | Prisma.JDRuleChunkCreateManyInput[]
+  skipDuplicates?: boolean
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.JDRuleChunkIncludeCreateManyAndReturn<ExtArgs> | null
+}
+
+/**
  * JDRuleChunk update
  */
 export type JDRuleChunkUpdateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -984,6 +1332,36 @@ export type JDRuleChunkUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.Ext
    * Choose, which related nodes to fetch as well
    */
   include?: Prisma.JDRuleChunkIncludeUpdateManyAndReturn<ExtArgs> | null
+}
+
+/**
+ * JDRuleChunk upsert
+ */
+export type JDRuleChunkUpsertArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the JDRuleChunk
+   */
+  select?: Prisma.JDRuleChunkSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the JDRuleChunk
+   */
+  omit?: Prisma.JDRuleChunkOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.JDRuleChunkInclude<ExtArgs> | null
+  /**
+   * The filter to search for the JDRuleChunk to update in case it exists.
+   */
+  where: Prisma.JDRuleChunkWhereUniqueInput
+  /**
+   * In case the JDRuleChunk found by the `where` argument doesn't exist, create a new JDRuleChunk with this data.
+   */
+  create: Prisma.XOR<Prisma.JDRuleChunkCreateInput, Prisma.JDRuleChunkUncheckedCreateInput>
+  /**
+   * In case the JDRuleChunk was found with the provided `where` argument, update it with this data.
+   */
+  update: Prisma.XOR<Prisma.JDRuleChunkUpdateInput, Prisma.JDRuleChunkUncheckedUpdateInput>
 }
 
 /**

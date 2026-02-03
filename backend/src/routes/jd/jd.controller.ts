@@ -14,27 +14,27 @@ export class JdController {
   @Auth([AuthType.Bearer])
   @HttpCode(HttpStatus.CREATED)
   async createJd(@ActiveUser() user: AccessTokenPayload, @Body() body: CreateJdBodyDTO): Promise<CreateJdResponseDTO> {
-    return await this.jdService.createJd(String(user.userId), body.title, body.text)
+    return await this.jdService.createJd(user.userUuid, body.title, body.text)
   }
 
   @Get()
   @Auth([AuthType.Bearer])
   @HttpCode(HttpStatus.OK)
   async listJds(@ActiveUser() user: AccessTokenPayload): Promise<JdListResponseDTO> {
-    return await this.jdService.listJds(String(user.userId))
+    return await this.jdService.listJds(user.userUuid)
   }
 
   @Get(':jdId')
   @Auth([AuthType.Bearer])
   @HttpCode(HttpStatus.OK)
   async getJdById(@ActiveUser() user: AccessTokenPayload, @Param('jdId') jdId: string): Promise<JdDetailResponseDTO> {
-    return await this.jdService.getJdById(String(user.userId), jdId)
+    return await this.jdService.getJdById(user.userUuid, jdId)
   }
 
   @Delete(':jdId')
   @Auth([AuthType.Bearer])
   @HttpCode(HttpStatus.OK)
   async deleteJd(@ActiveUser() user: AccessTokenPayload, @Param('jdId') jdId: string) {
-    return await this.jdService.deleteJd(String(user.userId), jdId)
+    return await this.jdService.deleteJd(user.userUuid, jdId)
   }
 }

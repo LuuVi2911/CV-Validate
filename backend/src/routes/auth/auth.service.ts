@@ -61,47 +61,77 @@ export class AuthService {
   }
 
   // ==========================
-  // Register
+  // Register (no OTP required, auto-sends verification email)
   // ==========================
-  async register(email: string, password: string, code: string) {
-    const user = await this.prisma.user.findUnique({ where: { email } })
-    if (!user) throw new Error('Email not sent OTP')
-
-    await this.validateOTP(user.id, VerificationCodeType.EMAIL_VERIFICATION, code)
+  async register(email: string, password: string) {
+    // Check if user already exists
+    const existingUser = await this.prisma.user.findUnique({ where: { email } })
+    if (existingUser && existingUser.emailVerified) {
+      throw new Error('Email already registered')
+    }
 
     const hashedPassword = await this.hashingService.hash(password)
 
-    return this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        password: hashedPassword,
-        emailVerified: true,
-      },
-      omit: { password: true },
-    })
-  }
-
-  // ==========================
-  // Send OTP (Register / Forgot)
-  // ==========================
-  async sendOTP(email: string, type: VerificationCodeType) {
-    let user = await this.prisma.user.findUnique({ where: { email } })
-
-    if (!user) {
+    let user
+    if (existingUser) {
+      // Update existing unverified user
+      user = await this.prisma.user.update({
+        where: { id: existingUser.id },
+        data: {
+          password: hashedPassword,
+          emailVerified: false,
+        },
+        omit: { password: true },
+      })
+    } else {
+      // Create new user
       user = await this.prisma.user.create({
         data: {
           email,
-          password: '',
+          password: hashedPassword,
+          emailVerified: false,
         },
+        omit: { password: true },
       })
     }
 
+    // Auto-send verification OTP
+    await this.sendOTPInternal(user.id, email, VerificationCodeType.EMAIL_VERIFICATION)
+
+    return user
+  }
+
+  // ==========================
+  // Verify Email (validates OTP and sets emailVerified=true)
+  // ==========================
+  async verifyEmail(email: string, code: string) {
+    const user = await this.prisma.user.findUnique({ where: { email } })
+    if (!user) throw new Error('Email not found')
+
+    if (user.emailVerified) {
+      return { message: 'Email already verified', verified: true }
+    }
+
+    await this.validateOTP(user.id, VerificationCodeType.EMAIL_VERIFICATION, code)
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { emailVerified: true },
+    })
+
+    return { message: 'Email verified successfully', verified: true }
+  }
+
+  // ==========================
+  // Send OTP (internal helper)
+  // ==========================
+  private async sendOTPInternal(userId: string, email: string, type: VerificationCodeType) {
     const code = this.generateOTP()
     const codeHash = await this.hashingService.hash(code)
 
     await this.prisma.emailVerification.create({
       data: {
-        userId: user.id,
+        userId,
         type,
         codeHash,
         expiresAt: addMinutes(new Date(), 10),
@@ -114,7 +144,31 @@ export class AuthService {
   }
 
   // ==========================
-  // Login
+  // Resend Verification Email
+  // ==========================
+  async resendVerificationEmail(email: string) {
+    const user = await this.prisma.user.findUnique({ where: { email } })
+    if (!user) throw new Error('Email not found')
+
+    if (user.emailVerified) {
+      throw new Error('Email already verified')
+    }
+
+    return this.sendOTPInternal(user.id, email, VerificationCodeType.EMAIL_VERIFICATION)
+  }
+
+  // ==========================
+  // Send OTP (for forgot password)
+  // ==========================
+  async sendForgotPasswordOTP(email: string) {
+    const user = await this.prisma.user.findUnique({ where: { email } })
+    if (!user) throw new Error('Email not found')
+
+    return this.sendOTPInternal(user.id, email, VerificationCodeType.FORGOT_PASSWORD)
+  }
+
+  // ==========================
+  // Login (requires emailVerified=true)
   // ==========================
   async login(email: string, password: string) {
     const user = await this.prisma.user.findUnique({ where: { email } })
@@ -127,9 +181,15 @@ export class AuthService {
       throw new Error('Email or password is incorrect')
     }
 
+    // Check if email is verified
+    if (!user.emailVerified) {
+      throw new Error('Email not verified')
+    }
+
     const userIdNumber = this.userIdToNumber(user.id)
     const accessToken = this.tokenService.signAccessToken({
       userId: userIdNumber,
+      userUuid: user.id,
       deviceId: 0,
       roleId: 0,
       roleName: 'user',
@@ -179,6 +239,7 @@ export class AuthService {
     const userIdNumber = this.userIdToNumber(user.id)
     const accessToken = this.tokenService.signAccessToken({
       userId: userIdNumber,
+      userUuid: user.id,
       deviceId: 0,
       roleId: 0,
       roleName: 'user',
@@ -232,11 +293,15 @@ export class AuthService {
   // ==========================
   // Generate Tokens
   // ==========================
-  async generateTokens({ userId, deviceId, roleId, roleName }: AccessTokenPayloadCreate, userStringId: string) {
+  async generateTokens(
+    { userId, userUuid, deviceId, roleId, roleName }: AccessTokenPayloadCreate,
+    userStringId: string,
+  ) {
     const [accessToken, refreshToken] = await Promise.all([
       Promise.resolve(
         this.tokenService.signAccessToken({
           userId,
+          userUuid,
           deviceId,
           roleId,
           roleName,
