@@ -28,7 +28,7 @@ export class CvQualityEngine {
     private readonly cvRepo: CvRepo,
     private readonly prisma: PrismaService,
     private readonly semanticEvaluator: SemanticEvaluator,
-  ) {}
+  ) { }
 
   async evaluate(
     cvId: string,
@@ -152,8 +152,8 @@ export class CvQualityEngine {
     return {
       decision,
       mustHaveViolations,
-      niceToHaveFindings,
-      bestPracticeFindings,
+      niceToHaveFindings: niceToHaveFindings.filter((f) => !f.passed),
+      bestPracticeFindings: bestPracticeFindings.filter((f) => !f.passed),
       scores: {
         mustHaveScore: Math.round(mustHaveScore * 100) / 100,
         niceToHaveScore: Math.round(niceToHaveScore * 100) / 100,

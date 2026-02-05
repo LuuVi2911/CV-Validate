@@ -102,6 +102,7 @@ export const MatchTraceEntrySchema = z.object({
   ruleId: z.string().uuid(),
   ruleType: RuleCategorySchema,
   ruleContent: z.string(), // Combined content from all chunks
+  // Chunk-level evidence (for debugging)
   chunkEvidence: z.array(ChunkMatchEvidenceSchema),
   // Rule-level decision
   matchStatus: MatchStatusSchema, // FULL | PARTIAL | NONE
@@ -115,12 +116,26 @@ export const MatchTraceEntrySchema = z.object({
       band: SimilarityBandSchema,
     })
     .nullable(),
-  // Section-aware upgrade info
-  sectionUpgradeApplied: z.boolean(),
+  // Section upgrade info
+  sectionUpgradeApplied: z.boolean().optional(),
   upgradeFromSection: z.string().optional(),
   // Scoring
   score: z.number(), // 1.0 for FULL, 0.5 for PARTIAL, 0.0 for NONE
   weightedScore: z.number(), // score × rule type multiplier
+  // Debugging & Details
+  llmJudgeUsed: z.boolean().optional(),
+  llmJudgeResult: z.string().optional(),
+  missingInfo: z.string().optional(),
+  // Multi-mention aggregation
+  multiMentionCount: z.number().int().optional(),
+  multiMentionBoost: z.boolean().optional(),
+  mentionDetails: z
+    .object({
+      high: z.number().int(),
+      medium: z.number().int(),
+      low: z.number().int(),
+    })
+    .optional(),
   // Legacy compatibility
   satisfied: z.boolean(), // true if matchStatus !== NONE
 })
@@ -162,6 +177,15 @@ export const SuggestionSchema = z.object({
   conceptLabel: z.string(), // short keyword extraction from rule chunk
 })
 
+// Mock Interview Question
+export const MockQuestionSchema = z.object({
+  question: z.string(),
+  expectedTopics: z.array(z.string()),
+  difficulty: z.enum(['easy', 'medium', 'hard']),
+  type: z.enum(['technical', 'behavioral', 'problem-solving']),
+})
+export type MockQuestionType = z.infer<typeof MockQuestionSchema>
+
 // JD Match Result
 export const JdMatchResultSchema = z.object({
   level: JdMatchLevelSchema,
@@ -169,9 +193,9 @@ export const JdMatchResultSchema = z.object({
   gaps: z.array(GapSchema),
   suggestions: z.array(SuggestionSchema),
   scores: z.object({
-    mustCoverage: z.number(),
-    niceCoverage: z.number(),
-    bestCoverage: z.number(),
+    mustHaveScore: z.number(),
+    niceToHaveScore: z.number(),
+    bestPracticeScore: z.number(),
     totalScore: z.number(),
   }),
 })
@@ -181,26 +205,8 @@ export const TraceMetadataSchema = z.object({
   requestId: z.string().uuid(),
   cvId: z.string().uuid(),
   jdId: z.string().uuid().optional(),
-  stopReason: z.string().optional(),
   ruleSetVersion: z.string(),
-  embedding: z.object({
-    provider: z.string(),
-    model: z.string(),
-    dimension: z.number().int(),
-  }),
-  matching: z.object({
-    topK: z.number().int(),
-    thresholds: z.object({
-      floor: z.number(),
-      low: z.number(),
-      high: z.number(),
-    }),
-  }),
   timingsMs: z.object({
-    cvQuality: z.number().optional(),
-    cvEmbedding: z.number().optional(),
-    jdEmbedding: z.number().optional(),
-    jdMatching: z.number().optional(),
     total: z.number(),
   }),
 })
@@ -230,6 +236,56 @@ export const EvaluationResultSchema = z.object({
   jdMatch: JdMatchResultSchema.optional().nullable(),
   gaps: z.array(GapSchema),
   suggestions: z.array(SuggestionSchema),
+  mockQuestions: z.array(MockQuestionSchema).optional(),
   decisionSupport: DecisionSupportSchema,
   trace: TraceMetadataSchema,
+})
+
+// Evaluation Summary (lightweight for FE)
+export const EvaluationSummarySchema = z.object({
+  evaluationId: z.string().uuid(),
+  cvId: z.string().uuid(),
+  jdId: z.string().uuid(),
+  scores: z.object({
+    mustHaveScore: z.number(),
+    niceToHaveScore: z.number(),
+    bestPracticeScore: z.number(),
+    totalScore: z.number(),
+  }),
+  matchLevel: JdMatchLevelSchema,
+  ruleSummary: z.object({
+    mustHave: z.object({
+      total: z.number().int(),
+      satisfied: z.number().int(),
+      partial: z.number().int(),
+      missing: z.number().int(),
+    }),
+    niceToHave: z.object({
+      total: z.number().int(),
+      satisfied: z.number().int(),
+      partial: z.number().int(),
+      missing: z.number().int(),
+    }),
+    bestPractice: z.object({
+      total: z.number().int(),
+      satisfied: z.number().int(),
+      partial: z.number().int(),
+      missing: z.number().int(),
+    }),
+  }),
+  gaps: z.array(
+    z.object({
+      ruleContent: z.string(),
+      severity: GapSeveritySchema,
+      reason: z.string(),
+    }),
+  ),
+  suggestions: z.array(
+    z.object({
+      message: z.string(),
+      severity: GapSeveritySchema,
+      actionType: SuggestionActionTypeSchema,
+      targetSection: z.string().nullable(),
+    }),
+  ),
 })

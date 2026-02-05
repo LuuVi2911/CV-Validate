@@ -95,7 +95,7 @@ export interface SemanticEvaluationResult {
 
 @Injectable()
 export class SemanticEvaluator {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   /**
    * Evaluate CV chunks against CV Quality Rule chunks.
@@ -149,7 +149,7 @@ export class SemanticEvaluator {
     jdId: string,
     config: EvaluationConfig,
   ): Promise<SemanticEvaluationResult> {
-    // Get all JD rules (excluding ignored/noise)
+    // Get all JD rules (excluding ignored/noise and INFORMATIONAL content like benefits/culture)
     const jdRules = await this.prisma.jDRule.findMany({
       where: {
         jdId,

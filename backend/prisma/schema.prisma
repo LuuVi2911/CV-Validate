@@ -14,30 +14,31 @@ datasource db {
 }
 
 model User {
-  id             String   @id @default(uuid())
-  email          String   @unique
-  password       String
-  emailVerified  Boolean  @default(false)
-  refreshTokens               RefreshToken[]
-  deletedAt      DateTime?
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  id            String         @id @default(uuid())
+  email         String         @unique
+  password      String
+  emailVerified Boolean        @default(false)
+  refreshTokens RefreshToken[]
+  deletedAt     DateTime?
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
 
-  cvs                Cv[]
-  jobDescriptions    JobDescription[]
-  verificationCodes  EmailVerification[]
+  cvs               Cv[]
+  jobDescriptions   JobDescription[]
+  verificationCodes EmailVerification[]
+  evaluations       Evaluation[]
 
   @@index([createdAt])
 }
 
 model EmailVerification {
-  id         String              @id @default(uuid())
-  userId     String
-  codeHash   String
-  type       VerificationCodeType
-  expiresAt  DateTime
-  used       Boolean             @default(false)
-  createdAt  DateTime            @default(now())
+  id        String               @id @default(uuid())
+  userId    String
+  codeHash  String
+  type      VerificationCodeType
+  expiresAt DateTime
+  used      Boolean              @default(false)
+  createdAt DateTime             @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -61,8 +62,9 @@ model Cv {
   status    CvStatus
   createdAt DateTime @default(now())
 
-  user     User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sections CvSection[]
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sections    CvSection[]
+  evaluations Evaluation[]
 
   @@index([userId])
 }
@@ -74,12 +76,12 @@ enum CvStatus {
 }
 
 model CvSection {
-  id     String @id @default(uuid())
-  cvId   String
-  type   CvSectionType
-  order  Int
+  id    String        @id @default(uuid())
+  cvId  String
+  type  CvSectionType
+  order Int
 
-  cv     Cv @relation(fields: [cvId], references: [id], onDelete: Cascade)
+  cv     Cv        @relation(fields: [cvId], references: [id], onDelete: Cascade)
   chunks CvChunk[]
 
   @@index([cvId])
@@ -95,7 +97,7 @@ enum CvSectionType {
 }
 
 model CvChunk {
-  id        String   @id @default(uuid())
+  id        String @id @default(uuid())
   sectionId String
   order     Int
   content   String
@@ -114,21 +116,22 @@ model JobDescription {
   title     String?
   createdAt DateTime @default(now())
 
-  user  User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  rules JDRule[]
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rules       JDRule[]
+  evaluations Evaluation[]
 
   @@index([userId])
 }
 
 // JD paragraph classification for noise filtering
 enum JDParagraphType {
-  REQUIREMENTS      // must, required, minimum, qualifications
-  RESPONSIBILITIES  // you will, role includes, contribute to
-  NICE_TO_HAVE      // preferred, bonus, plus
-  BENEFITS          // salary, benefits, healthcare (ignored)
-  COMPANY           // culture, we offer, inclusive (ignored)
-  PROCESS           // deadline, recruitment process (ignored)
-  UNKNOWN           // unclassified
+  REQUIREMENTS // must, required, minimum, qualifications
+  RESPONSIBILITIES // you will, role includes, contribute to
+  NICE_TO_HAVE // preferred, bonus, plus
+  BENEFITS // salary, benefits, healthcare (ignored)
+  COMPANY // culture, we offer, inclusive (ignored)
+  PROCESS // deadline, recruitment process (ignored)
+  UNKNOWN // unclassified
 }
 
 model JDRule {
@@ -137,7 +140,8 @@ model JDRule {
   ruleType      RuleType
   content       String
   paragraphType JDParagraphType @default(UNKNOWN) // for noise filtering
-  ignored       Boolean         @default(false)   // true if BENEFITS/COMPANY/PROCESS
+  ignored       Boolean         @default(false) // true if BENEFITS/COMPANY/PROCESS
+  intent        RuleIntent? // intent classification for smart filtering
 
   jd     JobDescription @relation(fields: [jdId], references: [id], onDelete: Cascade)
   chunks JDRuleChunk[]
@@ -145,15 +149,16 @@ model JDRule {
   @@index([jdId])
   @@index([paragraphType])
   @@index([ignored])
+  @@index([intent])
 }
 
 model JDRuleChunk {
-  id          String @id @default(uuid())
+  id          String  @id @default(uuid())
   ruleId      String
-  chunkKey    String?  // stable hash for deduplication (optional for backwards compat)
-  order       Int      @default(0)
-  content     String   // <= 300 chars
-  contentHash String?  // hash of normalized content
+  chunkKey    String? // stable hash for deduplication (optional for backwards compat)
+  order       Int     @default(0)
+  content     String // <= 300 chars
+  contentHash String? // hash of normalized content
 
   // pgvector embedding
   embedding Unsupported("vector(768)")?
@@ -170,14 +175,22 @@ enum RuleType {
   BEST_PRACTICE
 }
 
+enum RuleIntent {
+  REQUIREMENT // Technical skills, experience requirements
+  RESPONSIBILITY // Job duties, what the person will do
+  QUALIFICATION // Education, certifications, licenses
+  INFORMATIONAL // Company benefits, culture, perks - NOT MATCHABLE
+  PREFERENCE // Nice-to-have skills, bonus qualifications
+}
+
 // =============================================================================
 // RULE SETS (CV Quality Rules + JD Matching Rules from PDFs)
 // =============================================================================
 
 enum RuleStrategy {
   STRUCTURAL // enforced by code-based detectors (email, phone, date, section presence)
-  SEMANTIC   // evaluated via embeddings + cosine similarity
-  HYBRID     // requires both structural check + semantic evidence
+  SEMANTIC // evaluated via embeddings + cosine similarity
+  HYBRID // requires both structural check + semantic evidence
 }
 
 enum RuleSeverity {
@@ -189,8 +202,8 @@ enum RuleSeverity {
 model RuleSet {
   id                  String   @id @default(uuid())
   key                 String   @unique // e.g. "cv-quality-student-fresher", "jd-matching-v1"
-  sourcePdf           String   // original PDF filename
-  version             String   // e.g. "2026-02-03"
+  sourcePdf           String // original PDF filename
+  version             String // e.g. "2026-02-03"
   embeddingProvider   String   @default("gemini")
   embeddingModel      String   @default("text-embedding-004")
   embeddingDimension  Int      @default(768)
@@ -207,19 +220,19 @@ model RuleSet {
 model CvQualityRule {
   id                 String       @id @default(uuid())
   ruleSetId          String
-  ruleKey            String       // stable, deterministic (e.g. S-MH-01)
-  category           RuleType     // MUST_HAVE | NICE_TO_HAVE | BEST_PRACTICE
+  ruleKey            String // stable, deterministic (e.g. S-MH-01)
+  category           RuleType // MUST_HAVE | NICE_TO_HAVE | BEST_PRACTICE
   severity           RuleSeverity
   strategy           RuleStrategy
-  title              String?      // optional human-readable title
-  content            String       // normalized full rule text
-  appliesToSections  Json?        // JSON array of CvSectionType or null (global)
-  structuralCheckKey String?      // key for structural detector (e.g. "email_present")
-  params             Json?        // detector configuration parameters
+  title              String? // optional human-readable title
+  content            String // normalized full rule text
+  appliesToSections  Json? // JSON array of CvSectionType or null (global)
+  structuralCheckKey String? // key for structural detector (e.g. "email_present")
+  params             Json? // detector configuration parameters
   order              Int          @default(0) // order within rule set
   createdAt          DateTime     @default(now())
 
-  ruleSet RuleSet          @relation(fields: [ruleSetId], references: [id], onDelete: Cascade)
+  ruleSet RuleSet              @relation(fields: [ruleSetId], references: [id], onDelete: Cascade)
   chunks  CvQualityRuleChunk[]
 
   @@unique([ruleSetId, ruleKey])
@@ -232,10 +245,10 @@ model CvQualityRule {
 model CvQualityRuleChunk {
   id          String   @id @default(uuid())
   ruleId      String
-  chunkKey    String   // stable, deterministic hash(ruleKey + order + content)
+  chunkKey    String // stable, deterministic hash(ruleKey + order + content)
   order       Int
-  content     String   // <= 300 chars
-  contentHash String   // hash of normalized content for deduplication
+  content     String // <= 300 chars
+  contentHash String // hash of normalized content for deduplication
   createdAt   DateTime @default(now())
 
   // pgvector embedding
@@ -246,6 +259,42 @@ model CvQualityRuleChunk {
   @@unique([ruleId, chunkKey])
   @@index([ruleId])
   @@index([chunkKey])
+}
+
+// =============================================================================
+// REFERENCE RULES (for JD Rule Classification)
+// =============================================================================
+
+model ReferenceRule {
+  id          String   @id @default(uuid())
+  category    RuleType // MUST_HAVE, NICE_TO_HAVE, BEST_PRACTICE
+  title       String
+  description String
+  examples    String[] // Example phrases from Match JD rules PDF
+  createdAt   DateTime @default(now())
+
+  // pgvector embedding for semantic classification
+  embedding Unsupported("vector(768)")?
+
+  @@index([category])
+}
+
+model Evaluation {
+  id        String   @id @default(uuid())
+  userId    String
+  cvId      String
+  jdId      String?
+  results   Json // Full evaluation DTO
+  createdAt DateTime @default(now())
+
+  user User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cv   Cv              @relation(fields: [cvId], references: [id], onDelete: Cascade)
+  jd   JobDescription? @relation(fields: [jdId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([cvId])
+  @@index([jdId])
+  @@index([createdAt])
 }
 
 model RefreshToken {

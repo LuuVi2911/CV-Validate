@@ -176,6 +176,7 @@ export type CvWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"Cv"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   sections?: Prisma.CvSectionListRelationFilter
+  evaluations?: Prisma.EvaluationListRelationFilter
 }
 
 export type CvOrderByWithRelationInput = {
@@ -185,6 +186,7 @@ export type CvOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
   sections?: Prisma.CvSectionOrderByRelationAggregateInput
+  evaluations?: Prisma.EvaluationOrderByRelationAggregateInput
 }
 
 export type CvWhereUniqueInput = Prisma.AtLeast<{
@@ -197,6 +199,7 @@ export type CvWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"Cv"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   sections?: Prisma.CvSectionListRelationFilter
+  evaluations?: Prisma.EvaluationListRelationFilter
 }, "id">
 
 export type CvOrderByWithAggregationInput = {
@@ -225,6 +228,7 @@ export type CvCreateInput = {
   createdAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutCvsInput
   sections?: Prisma.CvSectionCreateNestedManyWithoutCvInput
+  evaluations?: Prisma.EvaluationCreateNestedManyWithoutCvInput
 }
 
 export type CvUncheckedCreateInput = {
@@ -233,6 +237,7 @@ export type CvUncheckedCreateInput = {
   status: $Enums.CvStatus
   createdAt?: Date | string
   sections?: Prisma.CvSectionUncheckedCreateNestedManyWithoutCvInput
+  evaluations?: Prisma.EvaluationUncheckedCreateNestedManyWithoutCvInput
 }
 
 export type CvUpdateInput = {
@@ -241,6 +246,7 @@ export type CvUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutCvsNestedInput
   sections?: Prisma.CvSectionUpdateManyWithoutCvNestedInput
+  evaluations?: Prisma.EvaluationUpdateManyWithoutCvNestedInput
 }
 
 export type CvUncheckedUpdateInput = {
@@ -249,6 +255,7 @@ export type CvUncheckedUpdateInput = {
   status?: Prisma.EnumCvStatusFieldUpdateOperationsInput | $Enums.CvStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sections?: Prisma.CvSectionUncheckedUpdateManyWithoutCvNestedInput
+  evaluations?: Prisma.EvaluationUncheckedUpdateManyWithoutCvNestedInput
 }
 
 export type CvCreateManyInput = {
@@ -367,11 +374,26 @@ export type CvUpdateOneRequiredWithoutSectionsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.CvUpdateToOneWithWhereWithoutSectionsInput, Prisma.CvUpdateWithoutSectionsInput>, Prisma.CvUncheckedUpdateWithoutSectionsInput>
 }
 
+export type CvCreateNestedOneWithoutEvaluationsInput = {
+  create?: Prisma.XOR<Prisma.CvCreateWithoutEvaluationsInput, Prisma.CvUncheckedCreateWithoutEvaluationsInput>
+  connectOrCreate?: Prisma.CvCreateOrConnectWithoutEvaluationsInput
+  connect?: Prisma.CvWhereUniqueInput
+}
+
+export type CvUpdateOneRequiredWithoutEvaluationsNestedInput = {
+  create?: Prisma.XOR<Prisma.CvCreateWithoutEvaluationsInput, Prisma.CvUncheckedCreateWithoutEvaluationsInput>
+  connectOrCreate?: Prisma.CvCreateOrConnectWithoutEvaluationsInput
+  upsert?: Prisma.CvUpsertWithoutEvaluationsInput
+  connect?: Prisma.CvWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.CvUpdateToOneWithWhereWithoutEvaluationsInput, Prisma.CvUpdateWithoutEvaluationsInput>, Prisma.CvUncheckedUpdateWithoutEvaluationsInput>
+}
+
 export type CvCreateWithoutUserInput = {
   id?: string
   status: $Enums.CvStatus
   createdAt?: Date | string
   sections?: Prisma.CvSectionCreateNestedManyWithoutCvInput
+  evaluations?: Prisma.EvaluationCreateNestedManyWithoutCvInput
 }
 
 export type CvUncheckedCreateWithoutUserInput = {
@@ -379,6 +401,7 @@ export type CvUncheckedCreateWithoutUserInput = {
   status: $Enums.CvStatus
   createdAt?: Date | string
   sections?: Prisma.CvSectionUncheckedCreateNestedManyWithoutCvInput
+  evaluations?: Prisma.EvaluationUncheckedCreateNestedManyWithoutCvInput
 }
 
 export type CvCreateOrConnectWithoutUserInput = {
@@ -422,6 +445,7 @@ export type CvCreateWithoutSectionsInput = {
   status: $Enums.CvStatus
   createdAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutCvsInput
+  evaluations?: Prisma.EvaluationCreateNestedManyWithoutCvInput
 }
 
 export type CvUncheckedCreateWithoutSectionsInput = {
@@ -429,6 +453,7 @@ export type CvUncheckedCreateWithoutSectionsInput = {
   userId: string
   status: $Enums.CvStatus
   createdAt?: Date | string
+  evaluations?: Prisma.EvaluationUncheckedCreateNestedManyWithoutCvInput
 }
 
 export type CvCreateOrConnectWithoutSectionsInput = {
@@ -452,6 +477,7 @@ export type CvUpdateWithoutSectionsInput = {
   status?: Prisma.EnumCvStatusFieldUpdateOperationsInput | $Enums.CvStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutCvsNestedInput
+  evaluations?: Prisma.EvaluationUpdateManyWithoutCvNestedInput
 }
 
 export type CvUncheckedUpdateWithoutSectionsInput = {
@@ -459,6 +485,55 @@ export type CvUncheckedUpdateWithoutSectionsInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumCvStatusFieldUpdateOperationsInput | $Enums.CvStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  evaluations?: Prisma.EvaluationUncheckedUpdateManyWithoutCvNestedInput
+}
+
+export type CvCreateWithoutEvaluationsInput = {
+  id?: string
+  status: $Enums.CvStatus
+  createdAt?: Date | string
+  user: Prisma.UserCreateNestedOneWithoutCvsInput
+  sections?: Prisma.CvSectionCreateNestedManyWithoutCvInput
+}
+
+export type CvUncheckedCreateWithoutEvaluationsInput = {
+  id?: string
+  userId: string
+  status: $Enums.CvStatus
+  createdAt?: Date | string
+  sections?: Prisma.CvSectionUncheckedCreateNestedManyWithoutCvInput
+}
+
+export type CvCreateOrConnectWithoutEvaluationsInput = {
+  where: Prisma.CvWhereUniqueInput
+  create: Prisma.XOR<Prisma.CvCreateWithoutEvaluationsInput, Prisma.CvUncheckedCreateWithoutEvaluationsInput>
+}
+
+export type CvUpsertWithoutEvaluationsInput = {
+  update: Prisma.XOR<Prisma.CvUpdateWithoutEvaluationsInput, Prisma.CvUncheckedUpdateWithoutEvaluationsInput>
+  create: Prisma.XOR<Prisma.CvCreateWithoutEvaluationsInput, Prisma.CvUncheckedCreateWithoutEvaluationsInput>
+  where?: Prisma.CvWhereInput
+}
+
+export type CvUpdateToOneWithWhereWithoutEvaluationsInput = {
+  where?: Prisma.CvWhereInput
+  data: Prisma.XOR<Prisma.CvUpdateWithoutEvaluationsInput, Prisma.CvUncheckedUpdateWithoutEvaluationsInput>
+}
+
+export type CvUpdateWithoutEvaluationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumCvStatusFieldUpdateOperationsInput | $Enums.CvStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  user?: Prisma.UserUpdateOneRequiredWithoutCvsNestedInput
+  sections?: Prisma.CvSectionUpdateManyWithoutCvNestedInput
+}
+
+export type CvUncheckedUpdateWithoutEvaluationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumCvStatusFieldUpdateOperationsInput | $Enums.CvStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sections?: Prisma.CvSectionUncheckedUpdateManyWithoutCvNestedInput
 }
 
 export type CvCreateManyUserInput = {
@@ -472,6 +547,7 @@ export type CvUpdateWithoutUserInput = {
   status?: Prisma.EnumCvStatusFieldUpdateOperationsInput | $Enums.CvStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sections?: Prisma.CvSectionUpdateManyWithoutCvNestedInput
+  evaluations?: Prisma.EvaluationUpdateManyWithoutCvNestedInput
 }
 
 export type CvUncheckedUpdateWithoutUserInput = {
@@ -479,6 +555,7 @@ export type CvUncheckedUpdateWithoutUserInput = {
   status?: Prisma.EnumCvStatusFieldUpdateOperationsInput | $Enums.CvStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sections?: Prisma.CvSectionUncheckedUpdateManyWithoutCvNestedInput
+  evaluations?: Prisma.EvaluationUncheckedUpdateManyWithoutCvNestedInput
 }
 
 export type CvUncheckedUpdateManyWithoutUserInput = {
@@ -494,10 +571,12 @@ export type CvUncheckedUpdateManyWithoutUserInput = {
 
 export type CvCountOutputType = {
   sections: number
+  evaluations: number
 }
 
 export type CvCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   sections?: boolean | CvCountOutputTypeCountSectionsArgs
+  evaluations?: boolean | CvCountOutputTypeCountEvaluationsArgs
 }
 
 /**
@@ -517,6 +596,13 @@ export type CvCountOutputTypeCountSectionsArgs<ExtArgs extends runtime.Types.Ext
   where?: Prisma.CvSectionWhereInput
 }
 
+/**
+ * CvCountOutputType without action
+ */
+export type CvCountOutputTypeCountEvaluationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.EvaluationWhereInput
+}
+
 
 export type CvSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -525,6 +611,7 @@ export type CvSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = run
   createdAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   sections?: boolean | Prisma.Cv$sectionsArgs<ExtArgs>
+  evaluations?: boolean | Prisma.Cv$evaluationsArgs<ExtArgs>
   _count?: boolean | Prisma.CvCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["cv"]>
 
@@ -555,6 +642,7 @@ export type CvOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runti
 export type CvInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   sections?: boolean | Prisma.Cv$sectionsArgs<ExtArgs>
+  evaluations?: boolean | Prisma.Cv$evaluationsArgs<ExtArgs>
   _count?: boolean | Prisma.CvCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type CvIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -569,6 +657,7 @@ export type $CvPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   objects: {
     user: Prisma.$UserPayload<ExtArgs>
     sections: Prisma.$CvSectionPayload<ExtArgs>[]
+    evaluations: Prisma.$EvaluationPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -971,6 +1060,7 @@ export interface Prisma__CvClient<T, Null = never, ExtArgs extends runtime.Types
   readonly [Symbol.toStringTag]: "PrismaPromise"
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   sections<T extends Prisma.Cv$sectionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Cv$sectionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CvSectionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  evaluations<T extends Prisma.Cv$evaluationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Cv$evaluationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EvaluationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1421,6 +1511,30 @@ export type Cv$sectionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
   take?: number
   skip?: number
   distinct?: Prisma.CvSectionScalarFieldEnum | Prisma.CvSectionScalarFieldEnum[]
+}
+
+/**
+ * Cv.evaluations
+ */
+export type Cv$evaluationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Evaluation
+   */
+  select?: Prisma.EvaluationSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Evaluation
+   */
+  omit?: Prisma.EvaluationOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.EvaluationInclude<ExtArgs> | null
+  where?: Prisma.EvaluationWhereInput
+  orderBy?: Prisma.EvaluationOrderByWithRelationInput | Prisma.EvaluationOrderByWithRelationInput[]
+  cursor?: Prisma.EvaluationWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.EvaluationScalarFieldEnum | Prisma.EvaluationScalarFieldEnum[]
 }
 
 /**

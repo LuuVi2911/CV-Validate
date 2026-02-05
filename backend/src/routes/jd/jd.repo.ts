@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from 'src/shared/services/prisma.service'
-import type { RuleType } from 'src/generated/prisma/enums'
+import type { RuleType, RuleIntent } from 'src/generated/prisma/enums'
 
 @Injectable()
 export class JdRepo {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async createJd(userId: string, title?: string) {
     return this.prisma.jobDescription.create({
@@ -105,6 +105,13 @@ export class JdRepo {
   async deleteJd(jdId: string) {
     return this.prisma.jobDescription.delete({
       where: { id: jdId },
+    })
+  }
+
+  async updateRuleIntent(ruleId: string, intent: string) {
+    return this.prisma.jDRule.update({
+      where: { id: ruleId },
+      data: { intent: intent as RuleIntent },
     })
   }
 }

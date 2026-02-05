@@ -32,6 +32,7 @@ import {
   SimilarityBand,
   SimilarityThresholds,
 } from 'src/engines/similarity/similarity.contract'
+import envConfig from 'src/shared/config'
 
 /**
  * JD Matching Engine (Refactored for AMBIGUOUS-aware matching)
@@ -286,6 +287,37 @@ export class JdMatchingEngine {
       }
     }
 
+    // Task 2.5: Multi-mention aggregation
+    // Count unique high-similarity matches to boost confidence for skills mentioned multiple times
+    const allCandidates = chunkEvidence.flatMap((e) => e.candidates)
+
+    // Deduplicate very similar CV chunks (avoid counting same content multiple times)
+    const uniqueCandidates: typeof allCandidates = []
+    const dedupThreshold = envConfig.DEDUP_SIMILARITY_THRESHOLD
+
+    for (const candidate of allCandidates) {
+      const isDuplicate = uniqueCandidates.some(
+        (existing) =>
+          existing.cvChunkId === candidate.cvChunkId ||
+          (existing.sectionId === candidate.sectionId &&
+            Math.abs(existing.score - candidate.score) < (1 - dedupThreshold))
+      )
+      if (!isDuplicate) {
+        uniqueCandidates.push(candidate)
+      }
+    }
+
+    // Count mentions by similarity range
+    const highSimilarityThreshold = envConfig.MULTI_MENTION_HIGH_SIMILARITY
+    const lowSimilarityThreshold = envConfig.SIM_LOW_THRESHOLD
+
+    const highMentions = uniqueCandidates.filter((c) => c.score >= highSimilarityThreshold)
+    const mediumMentions = uniqueCandidates.filter(
+      (c) => c.score >= lowSimilarityThreshold && c.score < highSimilarityThreshold
+    )
+    const multiMentionThreshold = envConfig.MULTI_MENTION_THRESHOLD
+    let multiMentionBoost = false
+
     // TASK 4: Rule-level decision
     // Use SimilarityContract for conservative aggregation and section upgrades
     const bands = chunkEvidence
@@ -295,10 +327,23 @@ export class JdMatchingEngine {
     let ruleStatus = aggregateRuleResult(bands)
     let matchStatus: MatchStatusType = ruleStatus === 'FULL' ? 'FULL' : ruleStatus === 'PARTIAL' ? 'PARTIAL' : ruleStatus === 'NONE' ? 'NONE' : 'NO_EVIDENCE'
 
+    // Apply multi-mention boost rules (override aggregateRuleResult if applicable)
+    if (highMentions.length >= multiMentionThreshold) {
+      // 3+ high mentions -> AUTO FULL match
+      matchStatus = 'FULL'
+      multiMentionBoost = true
+    } else if (mediumMentions.length >= multiMentionThreshold) {
+      // 3+ medium mentions -> Upgrade to FULL (strong evidence across CV)
+      if (matchStatus !== 'FULL') {
+        matchStatus = 'FULL'
+        multiMentionBoost = true
+      }
+    }
+
     let sectionUpgradeApplied = false
     let upgradeFromSection: string | undefined
 
-    if (matchStatus === 'PARTIAL' && bestOverallMatch) {
+    if (matchStatus === 'PARTIAL' && bestOverallMatch && !multiMentionBoost) {
       const confirmedByJudge = chunkEvidence.every(e => {
         if (e.bandStatus === 'AMBIGUOUS' && e.bestCandidate?.cvChunkId === bestOverallMatch.cvChunkId) {
           return !e.judgeUsed || (e.judgeResult?.relevant ?? true)
@@ -350,6 +395,13 @@ export class JdMatchingEngine {
         : null,
       sectionUpgradeApplied,
       upgradeFromSection,
+      multiMentionCount: uniqueCandidates.length,
+      multiMentionBoost,
+      mentionDetails: {
+        high: highMentions.length,
+        medium: mediumMentions.length,
+        low: uniqueCandidates.length - highMentions.length - mediumMentions.length,
+      },
       score,
       weightedScore,
       satisfied: matchStatus !== 'NONE',
@@ -593,7 +645,7 @@ export class JdMatchingEngine {
   private calculateScores(
     matchTrace: MatchTraceEntryDTO[],
     jdRules: Array<{ id: string; ruleType: string }>,
-  ): { mustCoverage: number; niceCoverage: number; bestCoverage: number; totalScore: number } {
+  ): { mustHaveScore: number; niceToHaveScore: number; bestPracticeScore: number; totalScore: number } {
     const calculateCoverage = (ruleType: string) => {
       const traces = matchTrace.filter((t) => t.ruleType === ruleType)
       if (traces.length === 0) return 100
@@ -604,20 +656,20 @@ export class JdMatchingEngine {
       return (totalScore / maxScore) * 100
     }
 
-    const mustCoverage = calculateCoverage('MUST_HAVE')
-    const niceCoverage = calculateCoverage('NICE_TO_HAVE')
-    const bestCoverage = calculateCoverage('BEST_PRACTICE')
+    const mustHaveScore = calculateCoverage('MUST_HAVE')
+    const niceToHaveScore = calculateCoverage('NICE_TO_HAVE')
+    const bestPracticeScore = calculateCoverage('BEST_PRACTICE')
 
     // Weighted total score
     const totalScore =
-      mustCoverage * RULE_TYPE_WEIGHTS.MUST_HAVE +
-      niceCoverage * RULE_TYPE_WEIGHTS.NICE_TO_HAVE +
-      bestCoverage * RULE_TYPE_WEIGHTS.BEST_PRACTICE
+      mustHaveScore * RULE_TYPE_WEIGHTS.MUST_HAVE +
+      niceToHaveScore * RULE_TYPE_WEIGHTS.NICE_TO_HAVE +
+      bestPracticeScore * RULE_TYPE_WEIGHTS.BEST_PRACTICE
 
     return {
-      mustCoverage: Math.round(mustCoverage * 100) / 100,
-      niceCoverage: Math.round(niceCoverage * 100) / 100,
-      bestCoverage: Math.round(bestCoverage * 100) / 100,
+      mustHaveScore: Math.round(mustHaveScore * 100) / 100,
+      niceToHaveScore: Math.round(niceToHaveScore * 100) / 100,
+      bestPracticeScore: Math.round(bestPracticeScore * 100) / 100,
       totalScore: Math.round(totalScore * 100) / 100,
     }
   }

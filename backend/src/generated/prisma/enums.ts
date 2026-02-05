@@ -60,6 +60,17 @@ export const RuleType = {
 export type RuleType = (typeof RuleType)[keyof typeof RuleType]
 
 
+export const RuleIntent = {
+  REQUIREMENT: 'REQUIREMENT',
+  RESPONSIBILITY: 'RESPONSIBILITY',
+  QUALIFICATION: 'QUALIFICATION',
+  INFORMATIONAL: 'INFORMATIONAL',
+  PREFERENCE: 'PREFERENCE'
+} as const
+
+export type RuleIntent = (typeof RuleIntent)[keyof typeof RuleIntent]
+
+
 export const RuleStrategy = {
   STRUCTURAL: 'STRUCTURAL',
   SEMANTIC: 'SEMANTIC',

@@ -12,6 +12,8 @@ import { AuthModule } from './routes/auth/auth.module'
 import { CvModule } from './routes/cv/cv.module'
 import { JdModule } from './routes/jd/jd.module'
 import { EvaluationModule } from './routes/evaluation/evaluation.module'
+import { InterviewModule } from './routes/interview/interview.module'
+import envConfig from './shared/config'
 
 @Module({
   imports: [
@@ -20,13 +22,13 @@ import { EvaluationModule } from './routes/evaluation/evaluation.module'
       throttlers: [
         {
           name: 'short',
-          ttl: 60000,
-          limit: 5,
+          ttl: envConfig.RATE_LIMIT_SHORT_TTL,
+          limit: envConfig.RATE_LIMIT_SHORT_MAX,
         },
         {
           name: 'long',
-          ttl: 120000, // 2 minutes
-          limit: 7,
+          ttl: envConfig.RATE_LIMIT_LONG_TTL,
+          limit: envConfig.RATE_LIMIT_LONG_MAX,
         },
       ],
     }),
@@ -34,6 +36,7 @@ import { EvaluationModule } from './routes/evaluation/evaluation.module'
     CvModule,
     JdModule,
     EvaluationModule,
+    InterviewModule,
   ],
   controllers: [AppController],
 
@@ -54,4 +57,4 @@ import { EvaluationModule } from './routes/evaluation/evaluation.module'
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

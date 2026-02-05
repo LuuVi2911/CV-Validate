@@ -31,6 +31,7 @@ export type JDRuleMinAggregateOutputType = {
   content: string | null
   paragraphType: $Enums.JDParagraphType | null
   ignored: boolean | null
+  intent: $Enums.RuleIntent | null
 }
 
 export type JDRuleMaxAggregateOutputType = {
@@ -40,6 +41,7 @@ export type JDRuleMaxAggregateOutputType = {
   content: string | null
   paragraphType: $Enums.JDParagraphType | null
   ignored: boolean | null
+  intent: $Enums.RuleIntent | null
 }
 
 export type JDRuleCountAggregateOutputType = {
@@ -49,6 +51,7 @@ export type JDRuleCountAggregateOutputType = {
   content: number
   paragraphType: number
   ignored: number
+  intent: number
   _all: number
 }
 
@@ -60,6 +63,7 @@ export type JDRuleMinAggregateInputType = {
   content?: true
   paragraphType?: true
   ignored?: true
+  intent?: true
 }
 
 export type JDRuleMaxAggregateInputType = {
@@ -69,6 +73,7 @@ export type JDRuleMaxAggregateInputType = {
   content?: true
   paragraphType?: true
   ignored?: true
+  intent?: true
 }
 
 export type JDRuleCountAggregateInputType = {
@@ -78,6 +83,7 @@ export type JDRuleCountAggregateInputType = {
   content?: true
   paragraphType?: true
   ignored?: true
+  intent?: true
   _all?: true
 }
 
@@ -160,6 +166,7 @@ export type JDRuleGroupByOutputType = {
   content: string
   paragraphType: $Enums.JDParagraphType
   ignored: boolean
+  intent: $Enums.RuleIntent | null
   _count: JDRuleCountAggregateOutputType | null
   _min: JDRuleMinAggregateOutputType | null
   _max: JDRuleMaxAggregateOutputType | null
@@ -190,6 +197,7 @@ export type JDRuleWhereInput = {
   content?: Prisma.StringFilter<"JDRule"> | string
   paragraphType?: Prisma.EnumJDParagraphTypeFilter<"JDRule"> | $Enums.JDParagraphType
   ignored?: Prisma.BoolFilter<"JDRule"> | boolean
+  intent?: Prisma.EnumRuleIntentNullableFilter<"JDRule"> | $Enums.RuleIntent | null
   jd?: Prisma.XOR<Prisma.JobDescriptionScalarRelationFilter, Prisma.JobDescriptionWhereInput>
   chunks?: Prisma.JDRuleChunkListRelationFilter
 }
@@ -201,6 +209,7 @@ export type JDRuleOrderByWithRelationInput = {
   content?: Prisma.SortOrder
   paragraphType?: Prisma.SortOrder
   ignored?: Prisma.SortOrder
+  intent?: Prisma.SortOrderInput | Prisma.SortOrder
   jd?: Prisma.JobDescriptionOrderByWithRelationInput
   chunks?: Prisma.JDRuleChunkOrderByRelationAggregateInput
 }
@@ -215,6 +224,7 @@ export type JDRuleWhereUniqueInput = Prisma.AtLeast<{
   content?: Prisma.StringFilter<"JDRule"> | string
   paragraphType?: Prisma.EnumJDParagraphTypeFilter<"JDRule"> | $Enums.JDParagraphType
   ignored?: Prisma.BoolFilter<"JDRule"> | boolean
+  intent?: Prisma.EnumRuleIntentNullableFilter<"JDRule"> | $Enums.RuleIntent | null
   jd?: Prisma.XOR<Prisma.JobDescriptionScalarRelationFilter, Prisma.JobDescriptionWhereInput>
   chunks?: Prisma.JDRuleChunkListRelationFilter
 }, "id">
@@ -226,6 +236,7 @@ export type JDRuleOrderByWithAggregationInput = {
   content?: Prisma.SortOrder
   paragraphType?: Prisma.SortOrder
   ignored?: Prisma.SortOrder
+  intent?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.JDRuleCountOrderByAggregateInput
   _max?: Prisma.JDRuleMaxOrderByAggregateInput
   _min?: Prisma.JDRuleMinOrderByAggregateInput
@@ -241,6 +252,7 @@ export type JDRuleScalarWhereWithAggregatesInput = {
   content?: Prisma.StringWithAggregatesFilter<"JDRule"> | string
   paragraphType?: Prisma.EnumJDParagraphTypeWithAggregatesFilter<"JDRule"> | $Enums.JDParagraphType
   ignored?: Prisma.BoolWithAggregatesFilter<"JDRule"> | boolean
+  intent?: Prisma.EnumRuleIntentNullableWithAggregatesFilter<"JDRule"> | $Enums.RuleIntent | null
 }
 
 export type JDRuleCreateInput = {
@@ -249,6 +261,7 @@ export type JDRuleCreateInput = {
   content: string
   paragraphType?: $Enums.JDParagraphType
   ignored?: boolean
+  intent?: $Enums.RuleIntent | null
   jd: Prisma.JobDescriptionCreateNestedOneWithoutRulesInput
   chunks?: Prisma.JDRuleChunkCreateNestedManyWithoutRuleInput
 }
@@ -260,6 +273,7 @@ export type JDRuleUncheckedCreateInput = {
   content: string
   paragraphType?: $Enums.JDParagraphType
   ignored?: boolean
+  intent?: $Enums.RuleIntent | null
   chunks?: Prisma.JDRuleChunkUncheckedCreateNestedManyWithoutRuleInput
 }
 
@@ -269,6 +283,7 @@ export type JDRuleUpdateInput = {
   content?: Prisma.StringFieldUpdateOperationsInput | string
   paragraphType?: Prisma.EnumJDParagraphTypeFieldUpdateOperationsInput | $Enums.JDParagraphType
   ignored?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  intent?: Prisma.NullableEnumRuleIntentFieldUpdateOperationsInput | $Enums.RuleIntent | null
   jd?: Prisma.JobDescriptionUpdateOneRequiredWithoutRulesNestedInput
   chunks?: Prisma.JDRuleChunkUpdateManyWithoutRuleNestedInput
 }
@@ -280,6 +295,7 @@ export type JDRuleUncheckedUpdateInput = {
   content?: Prisma.StringFieldUpdateOperationsInput | string
   paragraphType?: Prisma.EnumJDParagraphTypeFieldUpdateOperationsInput | $Enums.JDParagraphType
   ignored?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  intent?: Prisma.NullableEnumRuleIntentFieldUpdateOperationsInput | $Enums.RuleIntent | null
   chunks?: Prisma.JDRuleChunkUncheckedUpdateManyWithoutRuleNestedInput
 }
 
@@ -290,6 +306,7 @@ export type JDRuleCreateManyInput = {
   content: string
   paragraphType?: $Enums.JDParagraphType
   ignored?: boolean
+  intent?: $Enums.RuleIntent | null
 }
 
 export type JDRuleUpdateManyMutationInput = {
@@ -298,6 +315,7 @@ export type JDRuleUpdateManyMutationInput = {
   content?: Prisma.StringFieldUpdateOperationsInput | string
   paragraphType?: Prisma.EnumJDParagraphTypeFieldUpdateOperationsInput | $Enums.JDParagraphType
   ignored?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  intent?: Prisma.NullableEnumRuleIntentFieldUpdateOperationsInput | $Enums.RuleIntent | null
 }
 
 export type JDRuleUncheckedUpdateManyInput = {
@@ -307,6 +325,7 @@ export type JDRuleUncheckedUpdateManyInput = {
   content?: Prisma.StringFieldUpdateOperationsInput | string
   paragraphType?: Prisma.EnumJDParagraphTypeFieldUpdateOperationsInput | $Enums.JDParagraphType
   ignored?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  intent?: Prisma.NullableEnumRuleIntentFieldUpdateOperationsInput | $Enums.RuleIntent | null
 }
 
 export type JDRuleListRelationFilter = {
@@ -326,6 +345,7 @@ export type JDRuleCountOrderByAggregateInput = {
   content?: Prisma.SortOrder
   paragraphType?: Prisma.SortOrder
   ignored?: Prisma.SortOrder
+  intent?: Prisma.SortOrder
 }
 
 export type JDRuleMaxOrderByAggregateInput = {
@@ -335,6 +355,7 @@ export type JDRuleMaxOrderByAggregateInput = {
   content?: Prisma.SortOrder
   paragraphType?: Prisma.SortOrder
   ignored?: Prisma.SortOrder
+  intent?: Prisma.SortOrder
 }
 
 export type JDRuleMinOrderByAggregateInput = {
@@ -344,6 +365,7 @@ export type JDRuleMinOrderByAggregateInput = {
   content?: Prisma.SortOrder
   paragraphType?: Prisma.SortOrder
   ignored?: Prisma.SortOrder
+  intent?: Prisma.SortOrder
 }
 
 export type JDRuleScalarRelationFilter = {
@@ -401,6 +423,10 @@ export type EnumJDParagraphTypeFieldUpdateOperationsInput = {
   set?: $Enums.JDParagraphType
 }
 
+export type NullableEnumRuleIntentFieldUpdateOperationsInput = {
+  set?: $Enums.RuleIntent | null
+}
+
 export type JDRuleCreateNestedOneWithoutChunksInput = {
   create?: Prisma.XOR<Prisma.JDRuleCreateWithoutChunksInput, Prisma.JDRuleUncheckedCreateWithoutChunksInput>
   connectOrCreate?: Prisma.JDRuleCreateOrConnectWithoutChunksInput
@@ -421,6 +447,7 @@ export type JDRuleCreateWithoutJdInput = {
   content: string
   paragraphType?: $Enums.JDParagraphType
   ignored?: boolean
+  intent?: $Enums.RuleIntent | null
   chunks?: Prisma.JDRuleChunkCreateNestedManyWithoutRuleInput
 }
 
@@ -430,6 +457,7 @@ export type JDRuleUncheckedCreateWithoutJdInput = {
   content: string
   paragraphType?: $Enums.JDParagraphType
   ignored?: boolean
+  intent?: $Enums.RuleIntent | null
   chunks?: Prisma.JDRuleChunkUncheckedCreateNestedManyWithoutRuleInput
 }
 
@@ -469,6 +497,7 @@ export type JDRuleScalarWhereInput = {
   content?: Prisma.StringFilter<"JDRule"> | string
   paragraphType?: Prisma.EnumJDParagraphTypeFilter<"JDRule"> | $Enums.JDParagraphType
   ignored?: Prisma.BoolFilter<"JDRule"> | boolean
+  intent?: Prisma.EnumRuleIntentNullableFilter<"JDRule"> | $Enums.RuleIntent | null
 }
 
 export type JDRuleCreateWithoutChunksInput = {
@@ -477,6 +506,7 @@ export type JDRuleCreateWithoutChunksInput = {
   content: string
   paragraphType?: $Enums.JDParagraphType
   ignored?: boolean
+  intent?: $Enums.RuleIntent | null
   jd: Prisma.JobDescriptionCreateNestedOneWithoutRulesInput
 }
 
@@ -487,6 +517,7 @@ export type JDRuleUncheckedCreateWithoutChunksInput = {
   content: string
   paragraphType?: $Enums.JDParagraphType
   ignored?: boolean
+  intent?: $Enums.RuleIntent | null
 }
 
 export type JDRuleCreateOrConnectWithoutChunksInput = {
@@ -511,6 +542,7 @@ export type JDRuleUpdateWithoutChunksInput = {
   content?: Prisma.StringFieldUpdateOperationsInput | string
   paragraphType?: Prisma.EnumJDParagraphTypeFieldUpdateOperationsInput | $Enums.JDParagraphType
   ignored?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  intent?: Prisma.NullableEnumRuleIntentFieldUpdateOperationsInput | $Enums.RuleIntent | null
   jd?: Prisma.JobDescriptionUpdateOneRequiredWithoutRulesNestedInput
 }
 
@@ -521,6 +553,7 @@ export type JDRuleUncheckedUpdateWithoutChunksInput = {
   content?: Prisma.StringFieldUpdateOperationsInput | string
   paragraphType?: Prisma.EnumJDParagraphTypeFieldUpdateOperationsInput | $Enums.JDParagraphType
   ignored?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  intent?: Prisma.NullableEnumRuleIntentFieldUpdateOperationsInput | $Enums.RuleIntent | null
 }
 
 export type JDRuleCreateManyJdInput = {
@@ -529,6 +562,7 @@ export type JDRuleCreateManyJdInput = {
   content: string
   paragraphType?: $Enums.JDParagraphType
   ignored?: boolean
+  intent?: $Enums.RuleIntent | null
 }
 
 export type JDRuleUpdateWithoutJdInput = {
@@ -537,6 +571,7 @@ export type JDRuleUpdateWithoutJdInput = {
   content?: Prisma.StringFieldUpdateOperationsInput | string
   paragraphType?: Prisma.EnumJDParagraphTypeFieldUpdateOperationsInput | $Enums.JDParagraphType
   ignored?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  intent?: Prisma.NullableEnumRuleIntentFieldUpdateOperationsInput | $Enums.RuleIntent | null
   chunks?: Prisma.JDRuleChunkUpdateManyWithoutRuleNestedInput
 }
 
@@ -546,6 +581,7 @@ export type JDRuleUncheckedUpdateWithoutJdInput = {
   content?: Prisma.StringFieldUpdateOperationsInput | string
   paragraphType?: Prisma.EnumJDParagraphTypeFieldUpdateOperationsInput | $Enums.JDParagraphType
   ignored?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  intent?: Prisma.NullableEnumRuleIntentFieldUpdateOperationsInput | $Enums.RuleIntent | null
   chunks?: Prisma.JDRuleChunkUncheckedUpdateManyWithoutRuleNestedInput
 }
 
@@ -555,6 +591,7 @@ export type JDRuleUncheckedUpdateManyWithoutJdInput = {
   content?: Prisma.StringFieldUpdateOperationsInput | string
   paragraphType?: Prisma.EnumJDParagraphTypeFieldUpdateOperationsInput | $Enums.JDParagraphType
   ignored?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  intent?: Prisma.NullableEnumRuleIntentFieldUpdateOperationsInput | $Enums.RuleIntent | null
 }
 
 
@@ -595,6 +632,7 @@ export type JDRuleSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   content?: boolean
   paragraphType?: boolean
   ignored?: boolean
+  intent?: boolean
   jd?: boolean | Prisma.JobDescriptionDefaultArgs<ExtArgs>
   chunks?: boolean | Prisma.JDRule$chunksArgs<ExtArgs>
   _count?: boolean | Prisma.JDRuleCountOutputTypeDefaultArgs<ExtArgs>
@@ -607,6 +645,7 @@ export type JDRuleSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   content?: boolean
   paragraphType?: boolean
   ignored?: boolean
+  intent?: boolean
   jd?: boolean | Prisma.JobDescriptionDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["jDRule"]>
 
@@ -617,6 +656,7 @@ export type JDRuleSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   content?: boolean
   paragraphType?: boolean
   ignored?: boolean
+  intent?: boolean
   jd?: boolean | Prisma.JobDescriptionDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["jDRule"]>
 
@@ -627,9 +667,10 @@ export type JDRuleSelectScalar = {
   content?: boolean
   paragraphType?: boolean
   ignored?: boolean
+  intent?: boolean
 }
 
-export type JDRuleOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "jdId" | "ruleType" | "content" | "paragraphType" | "ignored", ExtArgs["result"]["jDRule"]>
+export type JDRuleOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "jdId" | "ruleType" | "content" | "paragraphType" | "ignored" | "intent", ExtArgs["result"]["jDRule"]>
 export type JDRuleInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   jd?: boolean | Prisma.JobDescriptionDefaultArgs<ExtArgs>
   chunks?: boolean | Prisma.JDRule$chunksArgs<ExtArgs>
@@ -655,6 +696,7 @@ export type $JDRulePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     content: string
     paragraphType: $Enums.JDParagraphType
     ignored: boolean
+    intent: $Enums.RuleIntent | null
   }, ExtArgs["result"]["jDRule"]>
   composites: {}
 }
@@ -1086,6 +1128,7 @@ export interface JDRuleFieldRefs {
   readonly content: Prisma.FieldRef<"JDRule", 'String'>
   readonly paragraphType: Prisma.FieldRef<"JDRule", 'JDParagraphType'>
   readonly ignored: Prisma.FieldRef<"JDRule", 'Boolean'>
+  readonly intent: Prisma.FieldRef<"JDRule", 'RuleIntent'>
 }
     
 

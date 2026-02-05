@@ -395,6 +395,8 @@ export const ModelName = {
   RuleSet: 'RuleSet',
   CvQualityRule: 'CvQualityRule',
   CvQualityRuleChunk: 'CvQualityRuleChunk',
+  ReferenceRule: 'ReferenceRule',
+  Evaluation: 'Evaluation',
   RefreshToken: 'RefreshToken'
 } as const
 
@@ -411,7 +413,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "emailVerification" | "cv" | "cvSection" | "cvChunk" | "jobDescription" | "jDRule" | "jDRuleChunk" | "ruleSet" | "cvQualityRule" | "cvQualityRuleChunk" | "refreshToken"
+    modelProps: "user" | "emailVerification" | "cv" | "cvSection" | "cvChunk" | "jobDescription" | "jDRule" | "jDRuleChunk" | "ruleSet" | "cvQualityRule" | "cvQualityRuleChunk" | "referenceRule" | "evaluation" | "refreshToken"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1229,6 +1231,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    ReferenceRule: {
+      payload: Prisma.$ReferenceRulePayload<ExtArgs>
+      fields: Prisma.ReferenceRuleFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ReferenceRuleFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReferenceRulePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ReferenceRuleFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReferenceRulePayload>
+        }
+        findFirst: {
+          args: Prisma.ReferenceRuleFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReferenceRulePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ReferenceRuleFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReferenceRulePayload>
+        }
+        findMany: {
+          args: Prisma.ReferenceRuleFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReferenceRulePayload>[]
+        }
+        create: {
+          args: Prisma.ReferenceRuleCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReferenceRulePayload>
+        }
+        createMany: {
+          args: Prisma.ReferenceRuleCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ReferenceRuleCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReferenceRulePayload>[]
+        }
+        delete: {
+          args: Prisma.ReferenceRuleDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReferenceRulePayload>
+        }
+        update: {
+          args: Prisma.ReferenceRuleUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReferenceRulePayload>
+        }
+        deleteMany: {
+          args: Prisma.ReferenceRuleDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ReferenceRuleUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ReferenceRuleUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReferenceRulePayload>[]
+        }
+        upsert: {
+          args: Prisma.ReferenceRuleUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReferenceRulePayload>
+        }
+        aggregate: {
+          args: Prisma.ReferenceRuleAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateReferenceRule>
+        }
+        groupBy: {
+          args: Prisma.ReferenceRuleGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ReferenceRuleGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ReferenceRuleCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ReferenceRuleCountAggregateOutputType> | number
+        }
+      }
+    }
+    Evaluation: {
+      payload: Prisma.$EvaluationPayload<ExtArgs>
+      fields: Prisma.EvaluationFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.EvaluationFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EvaluationPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.EvaluationFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EvaluationPayload>
+        }
+        findFirst: {
+          args: Prisma.EvaluationFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EvaluationPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.EvaluationFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EvaluationPayload>
+        }
+        findMany: {
+          args: Prisma.EvaluationFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EvaluationPayload>[]
+        }
+        create: {
+          args: Prisma.EvaluationCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EvaluationPayload>
+        }
+        createMany: {
+          args: Prisma.EvaluationCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.EvaluationCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EvaluationPayload>[]
+        }
+        delete: {
+          args: Prisma.EvaluationDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EvaluationPayload>
+        }
+        update: {
+          args: Prisma.EvaluationUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EvaluationPayload>
+        }
+        deleteMany: {
+          args: Prisma.EvaluationDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.EvaluationUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.EvaluationUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EvaluationPayload>[]
+        }
+        upsert: {
+          args: Prisma.EvaluationUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EvaluationPayload>
+        }
+        aggregate: {
+          args: Prisma.EvaluationAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateEvaluation>
+        }
+        groupBy: {
+          args: Prisma.EvaluationGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EvaluationGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.EvaluationCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EvaluationCountAggregateOutputType> | number
+        }
+      }
+    }
     RefreshToken: {
       payload: Prisma.$RefreshTokenPayload<ExtArgs>
       fields: Prisma.RefreshTokenFieldRefs
@@ -1414,7 +1564,8 @@ export const JDRuleScalarFieldEnum = {
   ruleType: 'ruleType',
   content: 'content',
   paragraphType: 'paragraphType',
-  ignored: 'ignored'
+  ignored: 'ignored',
+  intent: 'intent'
 } as const
 
 export type JDRuleScalarFieldEnum = (typeof JDRuleScalarFieldEnum)[keyof typeof JDRuleScalarFieldEnum]
@@ -1480,6 +1631,30 @@ export const CvQualityRuleChunkScalarFieldEnum = {
 export type CvQualityRuleChunkScalarFieldEnum = (typeof CvQualityRuleChunkScalarFieldEnum)[keyof typeof CvQualityRuleChunkScalarFieldEnum]
 
 
+export const ReferenceRuleScalarFieldEnum = {
+  id: 'id',
+  category: 'category',
+  title: 'title',
+  description: 'description',
+  examples: 'examples',
+  createdAt: 'createdAt'
+} as const
+
+export type ReferenceRuleScalarFieldEnum = (typeof ReferenceRuleScalarFieldEnum)[keyof typeof ReferenceRuleScalarFieldEnum]
+
+
+export const EvaluationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  cvId: 'cvId',
+  jdId: 'jdId',
+  results: 'results',
+  createdAt: 'createdAt'
+} as const
+
+export type EvaluationScalarFieldEnum = (typeof EvaluationScalarFieldEnum)[keyof typeof EvaluationScalarFieldEnum]
+
+
 export const RefreshTokenScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -1505,6 +1680,13 @@ export const NullableJsonNullValueInput = {
 } as const
 
 export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const QueryMode = {
@@ -1654,6 +1836,20 @@ export type EnumJDParagraphTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$
  * Reference to a field of type 'JDParagraphType[]'
  */
 export type ListEnumJDParagraphTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'JDParagraphType[]'>
+    
+
+
+/**
+ * Reference to a field of type 'RuleIntent'
+ */
+export type EnumRuleIntentFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'RuleIntent'>
+    
+
+
+/**
+ * Reference to a field of type 'RuleIntent[]'
+ */
+export type ListEnumRuleIntentFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'RuleIntent[]'>
     
 
 
@@ -1818,6 +2014,8 @@ export type GlobalOmitConfig = {
   ruleSet?: Prisma.RuleSetOmit
   cvQualityRule?: Prisma.CvQualityRuleOmit
   cvQualityRuleChunk?: Prisma.CvQualityRuleChunkOmit
+  referenceRule?: Prisma.ReferenceRuleOmit
+  evaluation?: Prisma.EvaluationOmit
   refreshToken?: Prisma.RefreshTokenOmit
 }
 

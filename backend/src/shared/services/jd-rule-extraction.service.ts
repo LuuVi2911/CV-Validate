@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common'
 import { RuleType, JDParagraphType } from 'src/generated/prisma/enums'
 import { RULE_TYPE_CUE_PHRASES } from 'src/rules/student-fresher/jd-matching.rules'
+import { JdRuleClassifierService } from './jd-rule-classifier.service'
+import { GeminiJdParserService } from './gemini-jd-parser.service'
+import envConfig from '../config'
 
 export interface ExtractedRule {
   content: string
@@ -11,6 +14,7 @@ export interface ExtractedRule {
   sourceParagraphType: JDParagraphType
   sourceParagraphIndex: number
   ignoredReason?: string
+  chunks?: string[] // Optional: Pre-chunked content from smart parser
 }
 
 /**
@@ -21,7 +25,7 @@ const PARAGRAPH_CLASSIFICATION_CUES = {
   REQUIREMENTS: ['must', 'required', 'minimum', 'you have', 'qualifications', 'requirements'],
   NICE_TO_HAVE: ['preferred', 'bonus', 'plus', 'nice to have', 'would be great'],
   RESPONSIBILITIES: ['you will', 'responsibilities', 'role includes', 'in this role', 'you\'ll'],
-  BENEFITS: ['salary', 'benefits', 'wellness', 'lunch', 'healthcare', 'work-life'],
+  BENEFITS: ['salary', 'benefits', 'wellness', 'lunch', 'healthcare', 'work-life', 'offer', 'contract', 'opportunity', 'potential'],
   PROCESS: ['recruitment process', 'interview', 'apply', 'deadline', 'rolling basis'],
   COMPANY: ['we are', 'about us', 'our culture', 'values', 'diversity', 'inclusion'],
 } as const
@@ -43,38 +47,102 @@ const PARAGRAPH_CLASSIFICATION_CUES = {
  */
 @Injectable()
 export class JdRuleExtractionService {
+  constructor(
+    private readonly jdRuleClassifier?: JdRuleClassifierService,
+    private readonly geminiJdParser?: GeminiJdParserService,
+  ) { }
+
   /**
    * Extract rules from JD text deterministically
    * With noise filtering: BENEFITS/COMPANY/PROCESS paragraphs are marked as ignored
    * @param text Raw JD text
    * @returns Array of extracted rules with their types and paragraph classification
    */
-  extractRules(text: string): ExtractedRule[] {
+  async extractRules(text: string): Promise<ExtractedRule[]> {
     // Normalize and split into statements
     const statements = this.splitIntoStatements(text)
 
     // Classify each statement into a rule type and paragraph type
-    return statements.map((statement, index) => {
+    const results: ExtractedRule[] = []
+    for (let index = 0; index < statements.length; index++) {
+      const statement = statements[index]
       const { type, ignored, reason } = this.classifyParagraph(statement)
+      const ruleType = await this.mapParagraphToRuleType(type, statement)
 
-      return {
+      results.push({
         content: this.normalizeContent(statement),
-        ruleType: this.mapParagraphToRuleType(type, statement),
+        ruleType,
         paragraphType: type,
         ignored,
         originalText: statement,
         sourceParagraphType: type,
         sourceParagraphIndex: index,
         ignoredReason: reason,
-      }
-    })
+      })
+    }
+
+    return results
   }
 
   /**
    * Extract only non-ignored rules (for JD matching)
    */
-  extractValidRules(text: string): ExtractedRule[] {
-    return this.extractRules(text).filter((rule) => !rule.ignored)
+  async extractValidRules(text: string): Promise<ExtractedRule[]> {
+    const rules = await this.extractRules(text)
+    return rules.filter((rule) => !rule.ignored)
+  }
+
+  /**
+   * Extract rules using LLM-based semantic parsing (Smart Parsing)
+   * Falls back to regex-based extraction if LLM is unavailable
+   */
+  async extractRulesSemantically(text: string): Promise<ExtractedRule[]> {
+    // Try LLM-based parsing if available
+    if (this.geminiJdParser && this.geminiJdParser.isEnabled()) {
+      try {
+        const parseResult = await this.geminiJdParser.parseJd(text)
+
+        // Convert parsed rules to ExtractedRule format
+        const extractedRules: ExtractedRule[] = []
+        for (let index = 0; index < parseResult.rules.length; index++) {
+          const parsedRule = parseResult.rules[index]
+
+          extractedRules.push({
+            content: parsedRule.content,
+            ruleType: parsedRule.category,
+            paragraphType: this.mapRuleTypeToParagraphType(parsedRule.category),
+            ignored: false, // LLM already filters out noise
+            originalText: parsedRule.content,
+            sourceParagraphType: this.mapRuleTypeToParagraphType(parsedRule.category),
+            sourceParagraphIndex: index,
+            chunks: parsedRule.chunks, // Preserve smart parser chunks
+          })
+        }
+
+        return extractedRules
+      } catch (error) {
+        console.warn('LLM parsing failed, falling back to regex-based extraction:', error)
+      }
+    }
+
+    // Fallback to regex-based extraction
+    return this.extractValidRules(text)
+  }
+
+  /**
+   * Map RuleType to JDParagraphType for consistency
+   */
+  private mapRuleTypeToParagraphType(ruleType: RuleType): JDParagraphType {
+    switch (ruleType) {
+      case 'MUST_HAVE':
+        return JDParagraphType.REQUIREMENTS
+      case 'NICE_TO_HAVE':
+        return JDParagraphType.NICE_TO_HAVE
+      case 'BEST_PRACTICE':
+        return JDParagraphType.RESPONSIBILITIES
+      default:
+        return JDParagraphType.UNKNOWN
+    }
   }
 
   /**
@@ -114,8 +182,19 @@ export class JdRuleExtractionService {
 
   /**
    * Map paragraph type to JDRule.ruleType
+   * Uses semantic classification if available, otherwise falls back to paragraph-based mapping
    */
-  private mapParagraphToRuleType(paragraphType: JDParagraphType, statement: string): RuleType {
+  private async mapParagraphToRuleType(paragraphType: JDParagraphType, statement: string): Promise<RuleType> {
+    // If semantic classifier is available and enabled, use it
+    if (this.jdRuleClassifier) {
+      try {
+        return await this.jdRuleClassifier.classifyRule(statement)
+      } catch (error) {
+        console.warn('Semantic classification failed, falling back to keyword-based:', error)
+      }
+    }
+
+    // Fallback to paragraph-based classification
     switch (paragraphType) {
       case JDParagraphType.REQUIREMENTS:
         return RuleType.MUST_HAVE

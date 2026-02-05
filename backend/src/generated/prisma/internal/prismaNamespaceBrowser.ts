@@ -62,6 +62,8 @@ export const ModelName = {
   RuleSet: 'RuleSet',
   CvQualityRule: 'CvQualityRule',
   CvQualityRuleChunk: 'CvQualityRuleChunk',
+  ReferenceRule: 'ReferenceRule',
+  Evaluation: 'Evaluation',
   RefreshToken: 'RefreshToken'
 } as const
 
@@ -153,7 +155,8 @@ export const JDRuleScalarFieldEnum = {
   ruleType: 'ruleType',
   content: 'content',
   paragraphType: 'paragraphType',
-  ignored: 'ignored'
+  ignored: 'ignored',
+  intent: 'intent'
 } as const
 
 export type JDRuleScalarFieldEnum = (typeof JDRuleScalarFieldEnum)[keyof typeof JDRuleScalarFieldEnum]
@@ -219,6 +222,30 @@ export const CvQualityRuleChunkScalarFieldEnum = {
 export type CvQualityRuleChunkScalarFieldEnum = (typeof CvQualityRuleChunkScalarFieldEnum)[keyof typeof CvQualityRuleChunkScalarFieldEnum]
 
 
+export const ReferenceRuleScalarFieldEnum = {
+  id: 'id',
+  category: 'category',
+  title: 'title',
+  description: 'description',
+  examples: 'examples',
+  createdAt: 'createdAt'
+} as const
+
+export type ReferenceRuleScalarFieldEnum = (typeof ReferenceRuleScalarFieldEnum)[keyof typeof ReferenceRuleScalarFieldEnum]
+
+
+export const EvaluationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  cvId: 'cvId',
+  jdId: 'jdId',
+  results: 'results',
+  createdAt: 'createdAt'
+} as const
+
+export type EvaluationScalarFieldEnum = (typeof EvaluationScalarFieldEnum)[keyof typeof EvaluationScalarFieldEnum]
+
+
 export const RefreshTokenScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -244,6 +271,13 @@ export const NullableJsonNullValueInput = {
 } as const
 
 export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const QueryMode = {

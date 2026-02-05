@@ -74,7 +74,7 @@ export class JdRuleChunkingService {
 
   private splitByPunctuation(text: string): string[] {
     return text
-      .split(/(?:[-*•●]|^\d{1,3}[.)])|;/)
+      .split(/(?:^[-*•●]|\s+[-*•●])\s+|;|(?:(?<!e\.g|i\.e)\.\s+)/)
       .map((s) => s.trim())
       .filter((s) => s.length > 0)
   }

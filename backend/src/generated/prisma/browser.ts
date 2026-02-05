@@ -73,6 +73,16 @@ export type CvQualityRule = Prisma.CvQualityRuleModel
  */
 export type CvQualityRuleChunk = Prisma.CvQualityRuleChunkModel
 /**
+ * Model ReferenceRule
+ * 
+ */
+export type ReferenceRule = Prisma.ReferenceRuleModel
+/**
+ * Model Evaluation
+ * 
+ */
+export type Evaluation = Prisma.EvaluationModel
+/**
  * Model RefreshToken
  * 
  */

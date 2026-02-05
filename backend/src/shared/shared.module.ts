@@ -11,11 +11,16 @@ import { JdRuleExtractionService } from 'src/shared/services/jd-rule-extraction.
 import { JdRuleChunkingService } from 'src/shared/services/jd-rule-chunking.service'
 import { VectorSearchService } from 'src/shared/services/vector-search.service'
 import { GeminiJudgeService } from 'src/shared/services/gemini-judge.service'
+import { InterviewGeneratorService } from 'src/shared/services/interview-generator.service'
 import { RuleIngestionService } from 'src/shared/services/rule-ingestion.service'
+import { JdRuleClassifierService } from 'src/shared/services/jd-rule-classifier.service'
 import { AccessTokenGuard } from 'src/shared/guard/access-token.guard'
 import { AuthenticationGuard } from 'src/shared/guard/authentication.guard'
 import { APP_GUARD } from '@nestjs/core'
 import { JwtModule } from '@nestjs/jwt'
+import { LoggerService } from 'src/shared/services/logger.service'
+import { JdRuleIntentClassifier } from 'src/shared/services/jd-rule-intent-classifier.service'
+import { GeminiJdParserService } from 'src/shared/services/gemini-jd-parser.service'
 
 const sharedServices = [
   TokenService,
@@ -31,6 +36,11 @@ const sharedServices = [
   VectorSearchService,
   GeminiJudgeService,
   RuleIngestionService,
+  InterviewGeneratorService,
+  JdRuleClassifierService,
+  LoggerService,
+  JdRuleIntentClassifier,
+  GeminiJdParserService,
 ]
 @Global()
 @Module({
@@ -48,4 +58,4 @@ const sharedServices = [
 
   imports: [JwtModule],
 })
-export class SharedModule {}
+export class SharedModule { }

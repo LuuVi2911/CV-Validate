@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { randomUUID } from 'crypto'
+import { EvaluationRepo } from './evaluation.repo'
 import { CvService } from '../cv/cv.service'
 import { JdService } from '../jd/jd.service'
 import { CvQualityEngine } from 'src/engines/cv-quality/cv-quality.engine'
@@ -31,7 +32,8 @@ export class EvaluationService {
     private readonly cvQualityEngine: CvQualityEngine,
     private readonly jdMatchingEngine: JdMatchingEngine,
     private readonly embeddingService: EmbeddingService,
-  ) {}
+    private readonly evaluationRepo: EvaluationRepo,
+  ) { }
 
   async runEvaluation(userId: string, cvId: string, jdId?: string) {
     const startTime = Date.now()
@@ -49,11 +51,10 @@ export class EvaluationService {
 
     // Hard gate: If NOT_READY, return immediately
     if (cvQualityStructural.decision === 'NOT_READY') {
-      return this.buildResponse(cvQualityStructural, undefined, {
+      return this.buildResponse(cvQualityStructural, undefined, [], [], {
         requestId,
         cvId,
         jdId,
-        stopReason: 'CV quality is NOT_READY due to MUST_HAVE violations',
         timings,
         startTime,
       })
@@ -74,11 +75,10 @@ export class EvaluationService {
 
     // Hard gate (post-semantic): If NOT_READY, stop before JD matching
     if (cvQualityResult.decision === 'NOT_READY') {
-      return this.buildResponse(cvQualityResult, undefined, {
+      return this.buildResponse(cvQualityResult, undefined, [], [], {
         requestId,
         cvId,
         jdId,
-        stopReason: 'CV quality is NOT_READY after semantic evaluation',
         timings,
         startTime,
       })
@@ -86,11 +86,10 @@ export class EvaluationService {
 
     // Gate: If no JD provided, return quality-only
     if (!jdId) {
-      return this.buildResponse(cvQualityResult, undefined, {
+      return this.buildResponse(cvQualityResult, undefined, [], [], {
         requestId,
         cvId,
         jdId: undefined,
-        stopReason: 'No JD provided',
         timings,
         startTime,
       })
@@ -117,25 +116,30 @@ export class EvaluationService {
     })
     timings.jdMatching = Date.now() - jdMatchingStart
 
-    // Stage 18: Final DTO Assembly
-    return this.buildResponse(cvQualityResult, jdMatchResult, {
+    // Stage 20: Final DTO Assembly
+    const result = this.buildResponse(cvQualityResult, jdMatchResult, jdMatchResult.gaps, jdMatchResult.suggestions, {
       requestId,
       cvId,
       jdId,
-      stopReason: undefined,
       timings,
       startTime,
     })
+
+    // Stage 21: Persist Evaluation
+    await this.evaluationRepo.createEvaluation(userId, cvId, jdId, result)
+
+    return result
   }
 
   private buildResponse(
     cvQualityResult: CvQualityResultDTO,
     jdMatchResult: JdMatchResultDTO | undefined,
+    gaps: GapDTO[],
+    suggestions: SuggestionDTO[],
     context: {
       requestId: string
       cvId: string
       jdId?: string
-      stopReason?: string
       timings: Record<string, number>
       startTime: number
     },
@@ -144,33 +148,11 @@ export class EvaluationService {
       requestId: context.requestId,
       cvId: context.cvId,
       jdId: context.jdId,
-      stopReason: context.stopReason,
       ruleSetVersion: cvQualityResult.ruleSetVersion,
-      embedding: {
-        provider: 'gemini',
-        model: envConfig.EMBEDDING_MODEL,
-        dimension: envConfig.EMBEDDING_DIM,
-      },
-      matching: {
-        topK: envConfig.MATCH_TOP_K,
-        thresholds: {
-          floor: envConfig.SIM_FLOOR,
-          low: envConfig.SIM_LOW_THRESHOLD,
-          high: envConfig.SIM_HIGH_THRESHOLD,
-        },
-      },
       timingsMs: {
-        cvQuality: context.timings.cvQuality,
-        cvEmbedding: context.timings.cvEmbedding,
-        jdEmbedding: context.timings.jdEmbedding,
-        jdMatching: context.timings.jdMatching,
         total: Date.now() - context.startTime,
       },
     }
-
-    // Extract gaps and suggestions from jdMatchResult
-    const gaps: GapDTO[] = jdMatchResult?.gaps ?? []
-    const suggestions: SuggestionDTO[] = jdMatchResult?.suggestions ?? []
 
     // Build decision support
     const criticalGaps = gaps.filter((g) => g.severity === 'CRITICAL_SKILL_GAP').length
@@ -194,7 +176,19 @@ export class EvaluationService {
 
     return {
       cvQuality: cvQualityResult,
-      jdMatch: jdMatchResult ?? null,
+      jdMatch: jdMatchResult
+        ? {
+          ...jdMatchResult,
+          matchTrace: jdMatchResult.matchTrace.map((entry) => ({
+            ...entry,
+            // Strip verbose candidate lists, keep judgeResult and metadata
+            chunkEvidence: entry.chunkEvidence.map((ce) => ({
+              ...ce,
+              candidates: [], // Strip detailed candidates list
+            })),
+          })),
+        }
+        : null,
       gaps,
       suggestions,
       decisionSupport: {
@@ -208,5 +202,121 @@ export class EvaluationService {
       },
       trace,
     }
+  }
+
+  async listEvaluations(userId: string) {
+    const evaluations = await this.evaluationRepo.findEvaluationsByUserId(userId)
+
+    return {
+      evaluations: evaluations.map((evaluation) => ({
+        id: evaluation.id,
+        cvId: evaluation.cvId,
+        jdId: evaluation.jdId,
+        results: evaluation.results,
+        createdAt: evaluation.createdAt,
+        cv: evaluation.cv,
+        jd: evaluation.jd,
+      })),
+    }
+  }
+
+  /**
+   * Get evaluation summary (lightweight for FE)
+   */
+  async getEvaluationSummary(userId: string, evaluationId: string) {
+    // Fetch evaluation from DB
+    const evaluation = await this.evaluationRepo.findById(evaluationId)
+
+    if (!evaluation) {
+      throw new Error('Evaluation not found')
+    }
+
+    // Verify ownership
+    const cv = await this.cvService.getCvById(userId, evaluation.cvId)
+    if (!cv) {
+      throw new Error('Not authorized')
+    }
+
+    // Parse stored result
+    const result = JSON.parse(evaluation.results as string)
+
+    // Build summary
+    return {
+      evaluationId: evaluation.id,
+      cvId: evaluation.cvId,
+      jdId: evaluation.jdId || '',
+      scores: result.jdMatch?.scores || {
+        mustHaveScore: 0,
+        niceToHaveScore: 0,
+        bestPracticeScore: 0,
+        totalScore: 0,
+      },
+      matchLevel: result.jdMatch?.level || 'LOW_MATCH',
+      ruleSummary: this.buildRuleSummary(result.jdMatch?.matchTrace || []),
+      gaps: (result.jdMatch?.gaps || []).map((g: any) => ({
+        ruleContent: g.ruleChunkContent,
+        severity: g.severity,
+        reason: g.reason,
+      })),
+      suggestions: (result.jdMatch?.suggestions || []).map((s: any) => ({
+        message: s.message,
+        severity: s.severity,
+        actionType: s.suggestedActionType,
+        targetSection: s.sectionType,
+      })),
+    }
+  }
+
+  /**
+   * Delete evaluation
+   */
+  async deleteEvaluation(userId: string, evaluationId: string): Promise<void> {
+    // Fetch evaluation
+    const evaluation = await this.evaluationRepo.findById(evaluationId)
+
+    if (!evaluation) {
+      throw new Error('Evaluation not found')
+    }
+
+    // Verify ownership
+    const cv = await this.cvService.getCvById(userId, evaluation.cvId)
+    if (!cv) {
+      throw new Error('Not authorized')
+    }
+
+    // Delete
+    await this.evaluationRepo.deleteById(evaluationId)
+  }
+
+  /**
+   * Build rule summary counts
+   */
+  private buildRuleSummary(matchTrace: any[]) {
+    const summary = {
+      mustHave: { total: 0, satisfied: 0, partial: 0, missing: 0 },
+      niceToHave: { total: 0, satisfied: 0, partial: 0, missing: 0 },
+      bestPractice: { total: 0, satisfied: 0, partial: 0, missing: 0 },
+    }
+
+    for (const trace of matchTrace) {
+      const category =
+        trace.ruleType === 'MUST_HAVE'
+          ? 'mustHave'
+          : trace.ruleType === 'NICE_TO_HAVE'
+            ? 'niceToHave'
+            : 'bestPractice'
+
+      summary[category].total++
+
+      if (trace.matchStatus === 'FULL') {
+        summary[category].satisfied++
+      } else if (trace.matchStatus === 'PARTIAL') {
+        summary[category].partial++
+      } else {
+        summary[category].missing++
+      }
+    }
+
+    return summary
   }
 }
