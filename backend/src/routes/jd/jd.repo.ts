@@ -91,7 +91,6 @@ export class JdRepo {
   }
 
   async findChunksWithoutEmbedding(jdId: string) {
-    // `embedding` is a pgvector Unsupported field, so Prisma can't filter on it.
     return this.prisma.$queryRaw<Array<{ id: string; ruleId: string; content: string }>>`
       SELECT c.id, c."ruleId", c.content
       FROM "JDRuleChunk" c

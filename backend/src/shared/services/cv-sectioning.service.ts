@@ -17,11 +17,6 @@ export interface DetectedSection {
  * Allowed logic:
  * - Heuristic-only section detection (headers/keywords/patterns)
  * - Deterministic ordering
- *
- * Forbidden logic:
- * - Embeddings or similarity
- * - CV quality scoring/rules
- * - JD matching logic
  */
 @Injectable()
 export class CvSectioningService {

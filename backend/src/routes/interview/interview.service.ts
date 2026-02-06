@@ -17,17 +17,14 @@ export class InterviewService {
         cvId: string,
         jdId: string,
     ): Promise<{ questions: MockQuestionType[] }> {
-        // Validate CV and JD ownership (getCvById throws if not found/owned)
         const { sections } = await this.cvService.getCvById(userId, cvId)
         await this.jdService.ensureJdExists(userId, jdId)
 
-        // Get JD content
         const { rules } = await this.jdService.getJdById(userId, jdId)
 
         const cvContent = sections.flatMap((s) => s.chunks.map((c) => c.content)).join('\n')
         const jdContent = rules.map((r) => r.content).join('\n')
 
-        // Generate questions
         const questions = await this.interviewGeneratorService.generateQuestions({
             cvContent,
             jdContent,

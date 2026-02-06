@@ -17,12 +17,6 @@ import envConfig from 'src/shared/config'
  * - Pipeline status checks (Cv.status)
  * - Readiness gate (only NOT_READY blocks pipeline; NEEDS_IMPROVEMENT still gets JD matching)
  * - DTO assembly
- *
- * Forbidden:
- * - Similarity computations
- * - Threshold/band application
- * - Rule evaluation
- * - Scoring
  */
 @Injectable()
 export class EvaluationService {
@@ -33,39 +27,40 @@ export class EvaluationService {
     private readonly jdMatchingEngine: JdMatchingEngine,
     private readonly embeddingService: EmbeddingService,
     private readonly evaluationRepo: EvaluationRepo,
-  ) { }
+  ) {}
 
   async runEvaluation(userId: string, cvId: string, jdId?: string) {
     const startTime = Date.now()
     const requestId = randomUUID()
+    const evaluationId = randomUUID()
     const timings: Record<string, number> = {}
 
-    // Stage 6: Pipeline Gating
-    // Guard: Ensure CV exists and is parsed
     await this.cvService.ensureCvParsed(userId, cvId)
 
-    // Stage 5: CV Quality Evaluation (STRUCTURAL only, cheap gate)
+    //CV Quality Evaluation (STRUCTURAL only, cheap gate)
     const cvQualityStart = Date.now()
     const cvQualityStructural = await this.cvQualityEngine.evaluate(cvId, { includeSemantic: false })
     timings.cvQuality = Date.now() - cvQualityStart
 
     // Hard gate: If NOT_READY, return immediately
     if (cvQualityStructural.decision === 'NOT_READY') {
-      return this.buildResponse(cvQualityStructural, undefined, [], [], {
+      const response = this.buildResponse(evaluationId, cvQualityStructural, undefined, [], [], {
         requestId,
         cvId,
         jdId,
         timings,
         startTime,
       })
+      await this.evaluationRepo.createEvaluation(userId, cvId, jdId, response, evaluationId)
+      return response
     }
 
-    // Stage 7: Embed CV chunks
+    // Embed CV chunks
     const cvEmbeddingStart = Date.now()
     await this.embeddingService.embedCvChunks(cvId)
     timings.cvEmbedding = Date.now() - cvEmbeddingStart
 
-    // Stage 8: CV Quality Evaluation (STRUCTURAL + SEMANTIC via RuleSet in DB)
+    // CV Quality Evaluation (STRUCTURAL + SEMANTIC via RuleSet in DB)
     const cvQualityFullStart = Date.now()
     const cvQualityResult = await this.cvQualityEngine.evaluate(cvId, {
       includeSemantic: true,
@@ -75,37 +70,40 @@ export class EvaluationService {
 
     // Hard gate (post-semantic): If NOT_READY, stop before JD matching
     if (cvQualityResult.decision === 'NOT_READY') {
-      return this.buildResponse(cvQualityResult, undefined, [], [], {
+      const response = this.buildResponse(evaluationId, cvQualityResult, undefined, [], [], {
         requestId,
         cvId,
         jdId,
         timings,
         startTime,
       })
+      await this.evaluationRepo.createEvaluation(userId, cvId, jdId, response, evaluationId)
+      return response
     }
 
     // Gate: If no JD provided, return quality-only
     if (!jdId) {
-      return this.buildResponse(cvQualityResult, undefined, [], [], {
+      const response = this.buildResponse(evaluationId, cvQualityResult, undefined, [], [], {
         requestId,
         cvId,
         jdId: undefined,
         timings,
         startTime,
       })
+      await this.evaluationRepo.createEvaluation(userId, cvId, undefined, response, evaluationId)
+      return response
     }
 
-    // JD matching runs for both READY and NEEDS_IMPROVEMENT (only NOT_READY is gated above)
 
     // Guard: Ensure JD exists and belongs to user
     await this.jdService.ensureJdExists(userId, jdId)
 
-    // Stage 11: Embed JD rule chunks
+    // Embed JD rule chunks
     const jdEmbeddingStart = Date.now()
     await this.embeddingService.embedJdRuleChunks(jdId)
     timings.jdEmbedding = Date.now() - jdEmbeddingStart
 
-    // Stage 12-17: JD Matching Engine
+    // JD Matching Engine
     const jdMatchingStart = Date.now()
     const jdMatchResult = await this.jdMatchingEngine.evaluate(cvId, jdId, {
       topK: envConfig.MATCH_TOP_K,
@@ -116,22 +114,30 @@ export class EvaluationService {
     })
     timings.jdMatching = Date.now() - jdMatchingStart
 
-    // Stage 20: Final DTO Assembly
-    const result = this.buildResponse(cvQualityResult, jdMatchResult, jdMatchResult.gaps, jdMatchResult.suggestions, {
-      requestId,
-      cvId,
-      jdId,
-      timings,
-      startTime,
-    })
+    // Final DTO Assembly
+    const result = this.buildResponse(
+      evaluationId,
+      cvQualityResult,
+      jdMatchResult,
+      jdMatchResult.gaps,
+      jdMatchResult.suggestions,
+      {
+        requestId,
+        cvId,
+        jdId,
+        timings,
+        startTime,
+      },
+    )
 
-    // Stage 21: Persist Evaluation
-    await this.evaluationRepo.createEvaluation(userId, cvId, jdId, result)
+    // Persist Evaluation
+    await this.evaluationRepo.createEvaluation(userId, cvId, jdId, result, evaluationId)
 
     return result
   }
 
   private buildResponse(
+    evaluationId: string,
     cvQualityResult: CvQualityResultDTO,
     jdMatchResult: JdMatchResultDTO | undefined,
     gaps: GapDTO[],
@@ -175,22 +181,21 @@ export class EvaluationService {
     }
 
     return {
+      evaluationId,
       cvQuality: cvQualityResult,
       jdMatch: jdMatchResult
         ? {
-          ...jdMatchResult,
-          matchTrace: jdMatchResult.matchTrace.map((entry) => ({
-            ...entry,
-            // Strip verbose candidate lists, keep judgeResult and metadata
-            chunkEvidence: entry.chunkEvidence.map((ce) => ({
-              ...ce,
-              candidates: [], // Strip detailed candidates list
+            ...jdMatchResult,
+            matchTrace: jdMatchResult.matchTrace.map((entry) => ({
+              ...entry,
+              chunkEvidence: entry.chunkEvidence.map((ce) => ({
+                ...ce,
+                candidates: [],
+              })),
             })),
-          })),
-        }
+          }
         : null,
-      gaps,
-      suggestions,
+      mockQuestions: context.jdId ? [] : undefined,
       decisionSupport: {
         readinessScore,
         recommendation,
@@ -224,56 +229,86 @@ export class EvaluationService {
    * Get evaluation summary (lightweight for FE)
    */
   async getEvaluationSummary(userId: string, evaluationId: string) {
-    // Fetch evaluation from DB
     const evaluation = await this.evaluationRepo.findById(evaluationId)
 
     if (!evaluation) {
       throw new Error('Evaluation not found')
     }
 
-    // Verify ownership
     const cv = await this.cvService.getCvById(userId, evaluation.cvId)
     if (!cv) {
       throw new Error('Not authorized')
     }
 
-    // Parse stored result
-    const result = JSON.parse(evaluation.results as string)
+    const result = evaluation.results as any
+    const cvQuality = result.cvQuality as CvQualityResultDTO
+    const jdMatch = result.jdMatch as JdMatchResultDTO | undefined
+    const decisionSupport = result.decisionSupport
 
-    // Build summary
+    const failedFindings = [
+      ...cvQuality.mustHaveViolations
+        .filter((f) => !f.passed)
+        .map((f) => ({ category: 'MUST_HAVE', reason: f.reason })),
+      ...cvQuality.niceToHaveFindings
+        .filter((f) => !f.passed)
+        .map((f) => ({ category: 'NICE_TO_HAVE', reason: f.reason })),
+      ...cvQuality.bestPracticeFindings
+        .filter((f) => !f.passed)
+        .map((f) => ({ category: 'BEST_PRACTICE', reason: f.reason })),
+    ]
+
+    const matches =
+      jdMatch?.matchTrace.map((entry: any) => ({
+        ruleType: entry.ruleType,
+        ruleContent: entry.ruleContent,
+        judgeReason: entry.llmJudgeResult || entry.chunkEvidence?.[0]?.judgeResult?.reason || 'No detailed reason',
+        score: entry.score,
+        weightedScore: entry.weightedScore,
+        satisfied: entry.satisfied,
+        confidence: entry.chunkEvidence?.[0]?.judgeResult?.confidence?.toUpperCase() || 'MEDIUM',
+      })) || []
+
+      const gaps = (jdMatch?.gaps || []).map((g: any) => ({
+      ruleChunkContent: g.ruleChunkContent,
+      ruleType: g.ruleType,
+      reason: g.reason,
+    }))
+
+    const suggestions = (jdMatch?.suggestions || []).map((s: any) => ({
+      severity: s.severity,
+      type: s.type,
+      message: s.message,
+      evidenceSnippet: s.evidenceSnippet || '',
+      suggestedActionType: s.suggestedActionType,
+      conceptLabel: s.conceptLabel,
+      sectionType: s.sectionType || 'General',
+    }))
+
     return {
       evaluationId: evaluation.id,
       cvId: evaluation.cvId,
       jdId: evaluation.jdId || '',
-      scores: result.jdMatch?.scores || {
-        mustHaveScore: 0,
-        niceToHaveScore: 0,
-        bestPracticeScore: 0,
-        totalScore: 0,
+      cvQuality: {
+        failedFindings,
       },
-      matchLevel: result.jdMatch?.level || 'LOW_MATCH',
-      ruleSummary: this.buildRuleSummary(result.jdMatch?.matchTrace || []),
-      gaps: (result.jdMatch?.gaps || []).map((g: any) => ({
-        ruleContent: g.ruleChunkContent,
-        severity: g.severity,
-        reason: g.reason,
-      })),
-      suggestions: (result.jdMatch?.suggestions || []).map((s: any) => ({
-        message: s.message,
-        severity: s.severity,
-        actionType: s.suggestedActionType,
-        targetSection: s.sectionType,
-      })),
+      jdMatch: {
+        matches,
+        scores: jdMatch?.scores || {
+          mustHaveScore: 0,
+          niceToHaveScore: 0,
+          bestPracticeScore: 0,
+          totalScore: 0,
+        },
+        level: jdMatch?.level || 'LOW_MATCH',
+        gaps,
+        suggestions,
+      },
+      decisionSupport,
     }
   }
 
-  /**
-   * Delete evaluation
-   */
-  async deleteEvaluation(userId: string, evaluationId: string): Promise<void> {
-    // Fetch evaluation
+  async deleteEvaluation(userId: string, evaluationId: string) {
     const evaluation = await this.evaluationRepo.findById(evaluationId)
-
     if (!evaluation) {
       throw new Error('Evaluation not found')
     }
@@ -284,39 +319,6 @@ export class EvaluationService {
       throw new Error('Not authorized')
     }
 
-    // Delete
     await this.evaluationRepo.deleteById(evaluationId)
-  }
-
-  /**
-   * Build rule summary counts
-   */
-  private buildRuleSummary(matchTrace: any[]) {
-    const summary = {
-      mustHave: { total: 0, satisfied: 0, partial: 0, missing: 0 },
-      niceToHave: { total: 0, satisfied: 0, partial: 0, missing: 0 },
-      bestPractice: { total: 0, satisfied: 0, partial: 0, missing: 0 },
-    }
-
-    for (const trace of matchTrace) {
-      const category =
-        trace.ruleType === 'MUST_HAVE'
-          ? 'mustHave'
-          : trace.ruleType === 'NICE_TO_HAVE'
-            ? 'niceToHave'
-            : 'bestPractice'
-
-      summary[category].total++
-
-      if (trace.matchStatus === 'FULL') {
-        summary[category].satisfied++
-      } else if (trace.matchStatus === 'PARTIAL') {
-        summary[category].partial++
-      } else {
-        summary[category].missing++
-      }
-    }
-
-    return summary
   }
 }

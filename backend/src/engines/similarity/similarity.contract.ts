@@ -3,16 +3,11 @@
  *
  * This file defines the SINGLE SOURCE OF TRUTH for similarity computation
  * in the CV Enhancer system. ALL engines MUST use these definitions.
- *
- * DO NOT duplicate this logic elsewhere.
- * DO NOT compute similarity differently in different engines.
  */
 
 import type { CvSectionType } from 'src/generated/prisma/enums'
 
-// =============================================================================
-// VECTOR OPERATOR (pgvector)
-// =============================================================================
+// Vector operator (pgvector)
 
 /**
  * pgvector operator: <=> (cosine distance)
@@ -23,18 +18,16 @@ import type { CvSectionType } from 'src/generated/prisma/enums'
  */
 export const VECTOR_OPERATOR = '<=>' as const
 
-// =============================================================================
-// SIMILARITY TRANSFORM
-// =============================================================================
+// Similarity transform
 
 /**
  * Convert cosine distance to similarity.
  * similarity = 1 - cosine_distance
  *
  * Result range: [-1, 1] where:
- * - 1 = identical
- * - 0 = orthogonal
- * - -1 = opposite
+ *  1 = identical
+ *  0 = orthogonal
+ * -1 = opposite
  */
 export function distanceToSimilarity(distance: number): number {
   return 1 - distance
@@ -48,9 +41,7 @@ export function similarityToDistance(similarity: number): number {
   return 1 - similarity
 }
 
-// =============================================================================
-// SIMILARITY BANDS
-// =============================================================================
+// Similarity bands
 
 export type SimilarityBand = 'HIGH' | 'AMBIGUOUS' | 'LOW' | 'NO_EVIDENCE'
 
@@ -87,9 +78,7 @@ export function passesFloor(similarity: number, floor: number): boolean {
   return similarity >= floor
 }
 
-// =============================================================================
-// RULE-LEVEL AGGREGATION
-// =============================================================================
+// Rule-level aggregation
 
 export type RuleLevelResult = 'FULL' | 'PARTIAL' | 'NONE' | 'NO_EVIDENCE'
 
@@ -115,9 +104,7 @@ export function aggregateRuleResult(bands: SimilarityBand[]): RuleLevelResult {
   return 'NO_EVIDENCE'
 }
 
-// =============================================================================
-// SECTION WEIGHTS (SOFT RANKING)
-// =============================================================================
+// Section weights (soft ranking)
 
 /**
  * Default section weights for ranking candidates.
@@ -161,9 +148,7 @@ export function getSectionWeight(
   return baseWeight
 }
 
-// =============================================================================
-// DETERMINISTIC TIE-BREAK
-// =============================================================================
+// Deterministic tie-break
 
 export interface CandidateForTieBreak {
   similarity: number
@@ -218,9 +203,7 @@ export function sortCandidates<T extends CandidateForTieBreak>(candidates: T[]):
   return [...candidates].sort(compareCandidates)
 }
 
-// =============================================================================
-// PARTIAL → FULL UPGRADE LOGIC
-// =============================================================================
+// Partial → Full upgrade logic
 
 export interface UpgradeConfig {
   /** Allow upgrade only from these sections */
@@ -266,9 +249,7 @@ export function canUpgradePartialToFull(
   return true
 }
 
-// =============================================================================
-// OFFICIAL SEVERITY MAPPING
-// =============================================================================
+// Official severity mapping
 
 export type GapSeverity =
   | 'CRITICAL_SKILL_GAP'
@@ -303,9 +284,7 @@ export function getGapSeverity(
   }
 }
 
-// =============================================================================
-// SQL HELPERS
-// =============================================================================
+// SQL helpers
 
 /**
  * Generate the ORDER BY clause for deterministic tie-breaking in SQL.

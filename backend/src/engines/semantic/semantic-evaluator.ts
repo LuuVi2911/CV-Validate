@@ -29,18 +29,9 @@ import envConfig from 'src/shared/config'
  * - Assign bands (HIGH / AMBIGUOUS / LOW / NO_EVIDENCE)
  * - Return structured evidence candidates (tie-broken deterministically)
  * - Rule-level aggregation (FULL / PARTIAL / NONE / NO_EVIDENCE)
- *
- * Does NOT do:
- * - Scoring
- * - Gap detection
- * - Suggestion generation
- * - LLM calls
  */
 
-// =============================================================================
-// TYPES
-// =============================================================================
-
+// Types
 export interface EvaluationConfig {
   topK: number
   thresholds: SimilarityThresholds
@@ -88,10 +79,6 @@ export interface SemanticEvaluationResult {
     noEvidence: number
   }
 }
-
-// =============================================================================
-// SERVICE
-// =============================================================================
 
 @Injectable()
 export class SemanticEvaluator {

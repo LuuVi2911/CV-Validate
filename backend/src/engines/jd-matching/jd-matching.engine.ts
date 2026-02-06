@@ -37,12 +37,6 @@ import envConfig from 'src/shared/config'
 /**
  * JD Matching Engine (Refactored for AMBIGUOUS-aware matching)
  *
- * CRITICAL PRINCIPLES:
- * 1. AMBIGUOUS similarity does NOT mean failure
- * 2. For fresher CVs, AMBIGUOUS means "relevant but under-expressed"
- * 3. All decisions are at RULE level, not chunk level
- * 4. LLM judge is OPTIONAL - AMBIGUOUS never degrades to NONE without judge
- *
  * Responsibilities:
  * - Vector match JDRuleChunk ↔ CvChunk (cosine similarity)
  * - Similarity band classification: HIGH | AMBIGUOUS | LOW
@@ -50,11 +44,6 @@ import envConfig from 'src/shared/config'
  * - Section-aware upgrade for PROJECTS/EXPERIENCE
  * - Optional Gemini judge only for AMBIGUOUS refinement
  * - Deterministic gap detection + suggestion generation + scoring
- *
- * Forbidden:
- * - Any CV quality logic
- * - Modifying CV quality decisions
- * - Treating AMBIGUOUS as NONE by default
  */
 @Injectable()
 export class JdMatchingEngine {
@@ -76,12 +65,9 @@ export class JdMatchingEngine {
       llmJudgeEnabled: boolean
     },
   ): Promise<JdMatchResultDTO> {
-    // Load JD rules with chunks
     const jdRules = await this.jdRepo.findRulesByJdId(jdId)
 
-    // Stage 12: Semantic evaluation using DB embeddings (CvChunk ↔ JDRuleChunk)
-    // We then adapt the semantic evaluator candidates into the legacy matchResults map
-    // so the rest of the deterministic rule-level logic remains unchanged.
+    // Semantic evaluation using DB embeddings (CvChunk ↔ JDRuleChunk)
     const semantic = await this.semanticEvaluator.evaluateJdRules(cvId, jdId, {
       topK: config.topK,
       thresholds: {
@@ -111,25 +97,25 @@ export class JdMatchingEngine {
     const gaps: GapDTO[] = []
     const suggestions: SuggestionDTO[] = []
 
-    // Process each RULE (not each chunk) - TASK 4: Rule-level decisions
+    // Process each rule (not each chunk)
     let suggestionIndex = 0
     for (const rule of jdRules) {
       const ruleResult = await this.processRule(rule, matchResults, config, jdId, suggestionIndex)
       matchTrace.push(ruleResult.traceEntry)
 
-      // TASK 6: Strict gap detection
+      // Strict gap detection
       if (ruleResult.gap) {
         gaps.push(ruleResult.gap)
       }
 
-      // TASK 7: AMBIGUOUS-aware suggestions
+      // AMBIGUOUS-aware suggestions
       if (ruleResult.suggestion) {
         suggestions.push(ruleResult.suggestion)
         suggestionIndex++
       }
     }
 
-    // Stage 17: JD Match Scoring with weighted scores
+    // JD Match Scoring with weighted scores
     const level = this.calculateMatchLevel(matchTrace, jdRules)
     const scores = this.calculateScores(matchTrace, jdRules)
 
@@ -144,7 +130,7 @@ export class JdMatchingEngine {
 
   /**
    * Process a single JD rule and determine its match status
-   * TASK 4: Rule-level decision (not chunk-level)
+   * Rule-level decision (not chunk-level)
    */
   private async processRule(
     rule: { id: string; ruleType: string; content: string; chunks: Array<{ id: string; content: string }> },
@@ -207,7 +193,7 @@ export class JdMatchingEngine {
     for (const ruleChunk of rule.chunks) {
       const candidates = matchResults.get(ruleChunk.id) || []
 
-      // Stage 13: Band classification and floor filtering
+      // Band classification and floor filtering
       const bandedCandidates = candidates
         .filter((c) => c.score >= config.simFloor)
         .map((c) => ({
@@ -221,7 +207,7 @@ export class JdMatchingEngine {
 
       const bestCandidate = bandedCandidates.length > 0 ? bandedCandidates[0] : null
 
-      // Stage 14: Optional LLM judge for AMBIGUOUS (TASK 3)
+      //  Optional LLM judge for AMBIGUOUS
       let judgeUsed = false
       let judgeSkipped = false
       let judgeUnavailable = false
@@ -287,7 +273,6 @@ export class JdMatchingEngine {
       }
     }
 
-    // Task 2.5: Multi-mention aggregation
     // Count unique high-similarity matches to boost confidence for skills mentioned multiple times
     const allCandidates = chunkEvidence.flatMap((e) => e.candidates)
 
@@ -318,7 +303,7 @@ export class JdMatchingEngine {
     const multiMentionThreshold = envConfig.MULTI_MENTION_THRESHOLD
     let multiMentionBoost = false
 
-    // TASK 4: Rule-level decision
+    // Rule-level decision
     // Use SimilarityContract for conservative aggregation and section upgrades
     const bands = chunkEvidence
       .map((e) => e.bandStatus as SimilarityBand)
@@ -407,7 +392,7 @@ export class JdMatchingEngine {
       satisfied: matchStatus !== 'NONE',
     }
 
-    // TASK 6/8: Strict gap detection using Official Severity Mapping
+    // Strict gap detection using Official Severity Mapping
     let gap: GapDTO | null = null
     if (matchStatus !== 'FULL') {
       const bestBand = (bestOverallMatch?.band ?? 'NO_EVIDENCE') as SimilarityBand
@@ -435,7 +420,7 @@ export class JdMatchingEngine {
       }
     }
 
-    // TASK 7: AMBIGUOUS-aware suggestions
+    // AMBIGUOUS-aware suggestions
     let suggestion: SuggestionDTO | null = null
     if (matchStatus !== 'FULL') {
       suggestion = this.generateSuggestion(rule, matchStatus, bestOverallMatch, suggestionIndex)
@@ -475,7 +460,7 @@ export class JdMatchingEngine {
     const conceptLabel = this.extractConceptLabel(rule.content)
     const bestChunk = rule.chunks?.[0]
 
-    // Generate message using concept label (no hardcoded templates)
+    // Generate message using concept label
     const message = isPartial
       ? `Expand your existing content to better demonstrate: ${conceptLabel}`
       : `Consider adding content that shows: ${conceptLabel}`
@@ -591,7 +576,7 @@ export class JdMatchingEngine {
 
   /**
    * Calculate overall match level using weighted scores
-   * TASK 5: AMBIGUOUS-aware scoring
+   * AMBIGUOUS-aware scoring
    */
   private calculateMatchLevel(
     matchTrace: MatchTraceEntryDTO[],
@@ -640,7 +625,7 @@ export class JdMatchingEngine {
 
   /**
    * Calculate detailed scores using weighted scoring
-   * TASK 5: AMBIGUOUS-aware scoring
+   * AMBIGUOUS-aware scoring
    */
   private calculateScores(
     matchTrace: MatchTraceEntryDTO[],

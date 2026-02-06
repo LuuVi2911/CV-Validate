@@ -18,10 +18,6 @@ export interface CvChunkData {
  * - Deterministic bullet splitting (-, •, numbered lists, newline heuristics)
  * - Stable order assignment per section
  * - Content normalization (trim, collapse multiple spaces)
- *
- * Forbidden logic:
- * - Any scoring/evaluation
- * - Any embeddings/vector matching
  */
 @Injectable()
 export class CvChunkingService {

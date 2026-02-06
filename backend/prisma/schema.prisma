@@ -103,7 +103,7 @@ model CvChunk {
   content   String
 
   // pgvector embedding
-  embedding Unsupported("vector(768)")?
+  embedding Unsupported("vector(3072)")?
 
   section CvSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
 
@@ -161,7 +161,7 @@ model JDRuleChunk {
   contentHash String? // hash of normalized content
 
   // pgvector embedding
-  embedding Unsupported("vector(768)")?
+  embedding Unsupported("vector(3072)")?
 
   rule JDRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
 
@@ -206,7 +206,7 @@ model RuleSet {
   version             String // e.g. "2026-02-03"
   embeddingProvider   String   @default("gemini")
   embeddingModel      String   @default("text-embedding-004")
-  embeddingDimension  Int      @default(768)
+  embeddingDimension  Int      @default(3072)
   vectorOperator      String   @default("<=>") // pgvector cosine distance
   similarityTransform String   @default("1 - distance") // formula
   createdAt           DateTime @default(now())
@@ -252,7 +252,7 @@ model CvQualityRuleChunk {
   createdAt   DateTime @default(now())
 
   // pgvector embedding
-  embedding Unsupported("vector(768)")?
+  embedding Unsupported("vector(3072)")?
 
   rule CvQualityRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
 
@@ -274,7 +274,7 @@ model ReferenceRule {
   createdAt   DateTime @default(now())
 
   // pgvector embedding for semantic classification
-  embedding Unsupported("vector(768)")?
+  embedding Unsupported("vector(3072)")?
 
   @@index([category])
 }

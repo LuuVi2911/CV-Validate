@@ -13,16 +13,9 @@ import type { CvSectionType } from 'src/generated/prisma/enums'
  * - Section presence checks
  * - Metric/number pattern detection
  * - Format validation
- *
- * Forbidden:
- * - Semantic meaning inference
- * - Keyword-based skill/outcome detection
- * - Any embedding/similarity logic
  */
 
-// =============================================================================
-// TYPES
-// =============================================================================
+// Types
 
 export interface CvForStructuralCheck {
   id: string
@@ -50,9 +43,7 @@ export interface StructuralCheckResult {
   } | null
 }
 
-// =============================================================================
-// PATTERNS
-// =============================================================================
+// Patterns
 
 const PATTERNS = {
   // Email: standard email format
@@ -85,10 +76,6 @@ const PATTERNS = {
   // Degree keywords (for education validation)
   DEGREE: /bachelor|master|bs|ba|ms|ma|phd|degree|diploma|certificate|bsc|msc|mba|be|btech|mtech/i,
 } as const
-
-// =============================================================================
-// SERVICE
-// =============================================================================
 
 @Injectable()
 export class StructuralDetectors {

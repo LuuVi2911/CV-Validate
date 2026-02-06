@@ -23,11 +23,10 @@ export class CvService {
   ) {}
 
   async uploadCv(userId: string, file: Express.Multer.File) {
-    // Stage 1: Create CV record with UPLOADED status
     const cv = await this.cvRepo.createCv(userId, CvStatus.UPLOADED)
 
     try {
-      // Stage 2: Parse PDF to text
+      // Parse PDF to text
       let rawText: string
       try {
         rawText = await this.pdfTextService.extractText(file.buffer)
@@ -43,10 +42,10 @@ export class CvService {
         throw CvPdfUnreadableException
       }
 
-      // Stage 3: Detect sections
+      // Detect sections
       const detectedSections = this.cvSectioningService.detectSections(rawText)
 
-      // Stage 4: Create chunks
+      // Create chunks
       const chunkData = this.cvChunkingService.createChunks(detectedSections)
 
       if (chunkData.length === 0) {
@@ -68,7 +67,6 @@ export class CvService {
       }))
       await this.cvRepo.createCvChunks(chunksToCreate)
 
-      // Update status to PARSED
       await this.cvRepo.updateCvStatus(cv.id, CvStatus.PARSED)
 
       return {
@@ -76,7 +74,6 @@ export class CvService {
         status: CvStatus.PARSED,
       }
     } catch (error) {
-      // Clean up on failure
       await this.cvRepo.deleteCv(cv.id)
       throw error
     }

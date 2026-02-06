@@ -14,21 +14,20 @@ export class JdService {
     private readonly jdRuleChunkingService: JdRuleChunkingService,
     private readonly intentClassifier: JdRuleIntentClassifier,
     private readonly logger: LoggerService,
-  ) { }
+  ) {}
 
   async createJd(userId: string, title: string | undefined, text: string) {
-    // Stage 8: Create JD record
     const jd = await this.jdRepo.createJd(userId, title)
 
     try {
-      // Stage 9: Extract rules from JD text (Smart LLM parsing with fallback)
+      // Extract rules from JD text (Smart LLM parsing with fallback)
       const extractedRules = await this.jdRuleExtractionService.extractRulesSemantically(text)
 
       if (extractedRules.length === 0) {
         throw JdNoRulesException
       }
 
-      // Stage 10: Chunk rules into smaller matchable units
+      // Chunk rules into smaller matchable units
       // If smart parser provided chunks, use them directly; otherwise use chunking service
       const chunksMap = new Map<number, Array<{ content: string }>>()
       for (let i = 0; i < extractedRules.length; i++) {
@@ -66,7 +65,7 @@ export class JdService {
         }
       }
 
-      // Stage 10.5: Classify rule intents (async, non-blocking)
+      // Classify rule intents (async, non-blocking)
       // This runs in background to avoid blocking JD upload
       this.classifyRuleIntents(createdRules).catch((error) => {
         this.logger.logError(error as Error, {

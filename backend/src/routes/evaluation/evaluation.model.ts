@@ -102,11 +102,8 @@ export const MatchTraceEntrySchema = z.object({
   ruleId: z.string().uuid(),
   ruleType: RuleCategorySchema,
   ruleContent: z.string(), // Combined content from all chunks
-  // Chunk-level evidence (for debugging)
   chunkEvidence: z.array(ChunkMatchEvidenceSchema),
-  // Rule-level decision
   matchStatus: MatchStatusSchema, // FULL | PARTIAL | NONE
-  // Best evidence for this rule
   bestChunkMatch: z
     .object({
       ruleChunkId: z.string().uuid(),
@@ -174,7 +171,7 @@ export const SuggestionSchema = z.object({
   sectionType: z.string().nullable(),
   evidenceSnippet: z.string().nullable(),
   suggestedActionType: SuggestionActionTypeSchema,
-  conceptLabel: z.string(), // short keyword extraction from rule chunk
+  conceptLabel: z.string(),
 })
 
 // Mock Interview Question
@@ -211,7 +208,7 @@ export const TraceMetadataSchema = z.object({
   }),
 })
 
-// Decision Support (readiness recommendation)
+// Decision Support
 export const DecisionSupportSchema = z.object({
   readinessScore: z.number(), // 0-100
   recommendation: z.enum(['NOT_READY', 'NEEDS_IMPROVEMENT', 'READY_TO_APPLY']),
@@ -230,15 +227,46 @@ export const RunEvaluationBodySchema = z
   })
   .strict()
 
-// Canonical Evaluation Response (matches plan Task 12)
 export const EvaluationResultSchema = z.object({
+  evaluationId: z.string().uuid(),
   cvQuality: CvQualityResultSchema,
   jdMatch: JdMatchResultSchema.optional().nullable(),
-  gaps: z.array(GapSchema),
-  suggestions: z.array(SuggestionSchema),
   mockQuestions: z.array(MockQuestionSchema).optional(),
   decisionSupport: DecisionSupportSchema,
   trace: TraceMetadataSchema,
+})
+
+// --- Evaluation Summary Schemas (Customized) ---
+
+export const SummaryFailedFindingSchema = z.object({
+  category: z.string(),
+  reason: z.string(),
+})
+
+export const SummaryMatchSchema = z.object({
+  ruleType: z.enum(['MUST_HAVE', 'NICE_TO_HAVE', 'BEST_PRACTICE']),
+  ruleContent: z.string(),
+  judgeReason: z.string(),
+  score: z.number(),
+  weightedScore: z.number(),
+  satisfied: z.boolean(),
+  confidence: z.enum(['HIGH', 'MEDIUM', 'LOW']),
+})
+
+export const SummaryGapSchema = z.object({
+  ruleChunkContent: z.string(),
+  ruleType: z.enum(['MUST_HAVE', 'NICE_TO_HAVE', 'BEST_PRACTICE']),
+  reason: z.string(),
+})
+
+export const SummarySuggestionSchema = z.object({
+  severity: z.enum(['CRITICAL', 'IMPORTANT', 'NICE_TO_HAVE']),
+  type: z.enum(['CONTENT_GAP', 'WEAK_EVIDENCE', 'FORMATTING', 'CLARITY']),
+  message: z.string(),
+  evidenceSnippet: z.string(),
+  suggestedActionType: z.enum(['ADD_KEYWORD', 'REWRITE_SECTION', 'ADD_SECTION', 'QUANTIFY_IMPACT']),
+  conceptLabel: z.string(),
+  sectionType: z.string(),
 })
 
 // Evaluation Summary (lightweight for FE)
@@ -246,46 +274,20 @@ export const EvaluationSummarySchema = z.object({
   evaluationId: z.string().uuid(),
   cvId: z.string().uuid(),
   jdId: z.string().uuid(),
-  scores: z.object({
-    mustHaveScore: z.number(),
-    niceToHaveScore: z.number(),
-    bestPracticeScore: z.number(),
-    totalScore: z.number(),
+  cvQuality: z.object({
+    failedFindings: z.array(SummaryFailedFindingSchema),
   }),
-  matchLevel: JdMatchLevelSchema,
-  ruleSummary: z.object({
-    mustHave: z.object({
-      total: z.number().int(),
-      satisfied: z.number().int(),
-      partial: z.number().int(),
-      missing: z.number().int(),
+  jdMatch: z.object({
+    matches: z.array(SummaryMatchSchema),
+    scores: z.object({
+      mustHaveScore: z.number(),
+      niceToHaveScore: z.number(),
+      bestPracticeScore: z.number(),
+      totalScore: z.number(),
     }),
-    niceToHave: z.object({
-      total: z.number().int(),
-      satisfied: z.number().int(),
-      partial: z.number().int(),
-      missing: z.number().int(),
-    }),
-    bestPractice: z.object({
-      total: z.number().int(),
-      satisfied: z.number().int(),
-      partial: z.number().int(),
-      missing: z.number().int(),
-    }),
+    level: JdMatchLevelSchema,
+    gaps: z.array(SummaryGapSchema),
+    suggestions: z.array(SummarySuggestionSchema),
   }),
-  gaps: z.array(
-    z.object({
-      ruleContent: z.string(),
-      severity: GapSeveritySchema,
-      reason: z.string(),
-    }),
-  ),
-  suggestions: z.array(
-    z.object({
-      message: z.string(),
-      severity: GapSeveritySchema,
-      actionType: SuggestionActionTypeSchema,
-      targetSection: z.string().nullable(),
-    }),
-  ),
+  decisionSupport: DecisionSupportSchema,
 })

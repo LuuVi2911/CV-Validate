@@ -16,11 +16,6 @@ import type { CvSectionType, RuleSeverity, RuleType } from 'src/generated/prisma
  * - SEMANTIC rules are evaluated separately via SemanticEvaluator
  * - Return findings with traceable evidence (chunk-level or section-level)
  * - Enforce MUST_HAVE violations → NOT_READY
- *
- * Forbidden:
- * - Keyword-based semantic matching (use embeddings instead)
- * - Any JD logic
- * - Any LLM calls
  */
 @Injectable()
 export class CvQualityEngine {
@@ -45,7 +40,7 @@ export class CvQualityEngine {
 
     const findings: CvQualityFindingDTO[] = []
 
-    // Execute only STRUCTURAL rules (which have evaluate functions)
+    // Execute only STRUCTURAL rules
     // SEMANTIC rules are evaluated via SemanticEvaluator with embedded rules
     for (const rule of CV_STRUCTURAL_RULES) {
       const result = rule.evaluate(cv)

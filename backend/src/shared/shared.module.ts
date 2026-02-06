@@ -42,6 +42,7 @@ const sharedServices = [
   JdRuleIntentClassifier,
   GeminiJdParserService,
 ]
+
 @Global()
 @Module({
   providers: [
@@ -49,13 +50,10 @@ const sharedServices = [
     AccessTokenGuard,
     {
       provide: APP_GUARD,
-
       useClass: AuthenticationGuard,
     },
   ],
-
   exports: [...sharedServices, JwtModule],
-
   imports: [JwtModule],
 })
-export class SharedModule { }
+export class SharedModule {}
