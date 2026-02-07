@@ -100,6 +100,11 @@ export class JdMatchingEngine {
     // Process each rule (not each chunk)
     let suggestionIndex = 0
     for (const rule of jdRules) {
+      // Skip rules that are purely INFORMATIONAL (e.g. location, working style, benefits)
+      if (rule.intent === 'INFORMATIONAL') {
+        continue
+      }
+
       const ruleResult = await this.processRule(rule, matchResults, config, jdId, suggestionIndex)
       matchTrace.push(ruleResult.traceEntry)
 
@@ -171,7 +176,11 @@ export class JdMatchingEngine {
       judgeUsed: boolean
       judgeSkipped: boolean
       judgeUnavailable: boolean
-      judgeResult: { relevant: boolean; reason: string; confidence?: 'low' | 'medium' | 'high' } | null
+      judgeResult: {
+        status: 'FULL' | 'PARTIAL' | 'NONE'
+        reason: string
+        confidence?: 'low' | 'medium' | 'high'
+      } | null
     }> = []
 
     let bestOverallMatch: {
@@ -211,7 +220,11 @@ export class JdMatchingEngine {
       let judgeUsed = false
       let judgeSkipped = false
       let judgeUnavailable = false
-      let judgeResult: { relevant: boolean; reason: string; confidence?: 'low' | 'medium' | 'high' } | null = null
+      let judgeResult: {
+        status: 'FULL' | 'PARTIAL' | 'NONE'
+        reason: string
+        confidence?: 'low' | 'medium' | 'high'
+      } | null = null
 
       if (bestCandidate && bestCandidate.band === 'AMBIGUOUS' && config.llmJudgeEnabled) {
         try {
@@ -251,7 +264,14 @@ export class JdMatchingEngine {
               band: bestCandidate.band,
             }
           : null,
-        bandStatus: bestCandidate?.band || null,
+        // Determine effective band based on Judge Result if available
+        bandStatus: judgeResult
+          ? judgeResult.status === 'FULL'
+            ? 'HIGH'
+            : judgeResult.status === 'PARTIAL'
+              ? 'AMBIGUOUS'
+              : 'LOW' // NONE -> LOW
+          : bestCandidate?.band || null,
         judgeUsed,
         judgeSkipped,
         judgeUnavailable,
@@ -294,13 +314,15 @@ export class JdMatchingEngine {
 
     // Count mentions by similarity range
     const highSimilarityThreshold = envConfig.MULTI_MENTION_HIGH_SIMILARITY
+    const mediumSimilarityThreshold = envConfig.MULTI_MENTION_MEDIUM_SIMILARITY
     const lowSimilarityThreshold = envConfig.SIM_LOW_THRESHOLD
 
     const highMentions = uniqueCandidates.filter((c) => c.score >= highSimilarityThreshold)
     const mediumMentions = uniqueCandidates.filter(
-      (c) => c.score >= lowSimilarityThreshold && c.score < highSimilarityThreshold,
+      (c) => c.score >= mediumSimilarityThreshold && c.score < highSimilarityThreshold,
     )
     const multiMentionThreshold = envConfig.MULTI_MENTION_THRESHOLD
+    const multiMentionMediumThreshold = envConfig.MULTI_MENTION_MEDIUM_THRESHOLD
     let multiMentionBoost = false
 
     // Rule-level decision
@@ -318,10 +340,17 @@ export class JdMatchingEngine {
             : 'NO_EVIDENCE'
 
     // Apply multi-mention boost rules (override aggregateRuleResult if applicable)
-    if (highMentions.length >= multiMentionThreshold) {
-      // 3+ high mentions -> AUTO FULL match
-      matchStatus = 'FULL'
-      multiMentionBoost = true
+    // ONLY applied if there is at least some evidence (not NONE/NO_EVIDENCE)
+    if (matchStatus !== 'NONE' && matchStatus !== 'NO_EVIDENCE') {
+      const hasEnoughHigh = highMentions.length >= multiMentionThreshold
+      const hasMixedHighMedium = highMentions.length >= 1 && mediumMentions.length >= 1
+      const hasEnoughMedium = mediumMentions.length >= multiMentionMediumThreshold
+
+      if (hasEnoughHigh || hasMixedHighMedium || hasEnoughMedium) {
+        // Boost to FULL match
+        matchStatus = 'FULL'
+        multiMentionBoost = true
+      }
     }
 
     let sectionUpgradeApplied = false
@@ -330,7 +359,9 @@ export class JdMatchingEngine {
     if (matchStatus === 'PARTIAL' && bestOverallMatch && !multiMentionBoost) {
       const confirmedByJudge = chunkEvidence.every((e) => {
         if (e.bandStatus === 'AMBIGUOUS' && e.bestCandidate?.cvChunkId === bestOverallMatch.cvChunkId) {
-          return !e.judgeUsed || (e.judgeResult?.relevant ?? true)
+          // If judge was not used, assume confirmed (true). If used, check status is not NONE.
+          if (!e.judgeUsed) return true
+          return e.judgeResult?.status !== 'NONE'
         }
         return true
       })
@@ -352,7 +383,10 @@ export class JdMatchingEngine {
     // TASK 3: LLM judge degradation rule (PARTIAL -> NONE if judge says NOT RELEVANT)
     if (matchStatus === 'PARTIAL' && !sectionUpgradeApplied) {
       const judgedNotRelevant = chunkEvidence.some(
-        (e) => e.bandStatus === 'AMBIGUOUS' && e.judgeUsed && e.judgeResult && !e.judgeResult.relevant,
+        (e) =>
+          e.bandStatus === 'LOW' && // Was AMBIGUOUS, now LOW due to judge
+          e.judgeUsed &&
+          e.judgeResult?.status === 'NONE',
       )
 
       if (judgedNotRelevant) {

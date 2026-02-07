@@ -10,7 +10,7 @@ export interface JudgeInput {
 }
 
 export interface JudgeResult {
-  relevant: boolean
+  status: 'FULL' | 'PARTIAL' | 'NONE'
   reason: string
   confidence: 'low' | 'medium' | 'high'
 }
@@ -251,7 +251,7 @@ export class GeminiJudgeService {
    * Strict instructions: judge relevance only
    */
   private buildPrompt(input: JudgeInput): string {
-    return `You are a CV-JD matching judge. Your ONLY task is to determine if the CV content demonstrates the requirement specified in the JD.
+    return `You are a CV-JD matching judge. Your ONLY task is to determine the match level between a JD requirement and CV content.
 
 JD REQUIREMENT:
 "${input.ruleChunkContent}"
@@ -260,21 +260,23 @@ CV CONTENT (from ${input.sectionType} section):
 "${input.cvChunkContent}"
 
 INSTRUCTIONS:
-- Answer ONLY whether the CV content demonstrates or relates to the JD requirement
-- Do NOT evaluate CV quality
+- Determine the match status: FULL, PARTIAL, or NONE
+- Do NOT evaluate CV quality in general
 - Do NOT suggest improvements
-- Do NOT make hiring decisions
 
 Respond with a JSON object in this exact format:
 {
-  "relevant": true or false,
+  "status": "FULL" or "PARTIAL" or "NONE",
   "reason": "Brief explanation (max 25 words)",
   "confidence": "low" or "medium" or "high"
 }
 
-Rules for relevance:
-- "relevant": true if the CV content demonstrates skills, experience, or knowledge that matches the requirement
-- "relevant": false if there's no clear connection between the CV content and the requirement`
+Rules for status:
+- "FULL": The CV content strongly demonstrates the requirement.
+  - SPECIAL CASE: If the requirement is "English communication" and the CV content is written in English (even if the text itself is about something else like Education), mark as FULL.
+  - SPECIAL CASE: If the requirement is "Problem Solving" and the CV content (especially Projects) describes a real-world solution or case study, mark as FULL.
+- "PARTIAL": The CV content implies the requirement or shows related skills, but is not a direct/strong match.
+- "NONE": There is no clear connection between the CV content and the requirement.`
   }
 
   /**
@@ -296,19 +298,21 @@ CV CONTENT (from ${input.sectionType}): "${input.cvChunkContent}"
 ${comparisons}
 
 INSTRUCTIONS:
-- For each comparison, determine if the CV content demonstrates the JD requirement
+- For each comparison, determine the match status: FULL, PARTIAL, or NONE
 - Do NOT evaluate CV quality, suggest improvements, or make hiring decisions
 
 Respond with a JSON array with ${inputs.length} objects in this exact format:
 [
-  {"id": 0, "relevant": true or false, "reason": "Brief explanation", "confidence": "low" or "medium" or "high"},
-  {"id": 1, "relevant": true or false, "reason": "Brief explanation", "confidence": "low" or "medium" or "high"}
+  {"id": 0, "status": "FULL" | "PARTIAL" | "NONE", "reason": "Brief explanation", "confidence": "low" | "medium" | "high"},
+  {"id": 1, "status": "FULL" | "PARTIAL" | "NONE", "reason": "Brief explanation", "confidence": "low" | "medium" | "high"}
 ]
 
-Rules:
-- "relevant": true if CV demonstrates skills/experience matching the requirement
-- "relevant": false if no clear connection
-- Keep reasons under 50 words`
+Rules for status:
+- "FULL": Strong demonstration.
+  - English requirement + English CV text = FULL.
+  - Problem Solving + Real-world project case = FULL.
+- "PARTIAL": Implied or related match.
+- "NONE": No clear connection.`
   }
 
   /**
@@ -324,10 +328,11 @@ Rules:
         const parsed = JSON.parse(cleanText)
         if (parsed && typeof parsed === 'object') {
           // Validate and normalize the response
-          const relevant = Boolean(parsed.relevant)
+          // Validate and normalize the response
+          const status = this.normalizeStatus(parsed.status, Boolean(parsed.relevant))
           const reason = String(parsed.reason || 'No reason provided').substring(0, 200)
           const confidence = this.normalizeConfidence(parsed.confidence)
-          return { relevant, reason, confidence }
+          return { status, reason, confidence }
         }
       } catch {
         // Not pure JSON, try extracting it
@@ -349,11 +354,11 @@ Rules:
       const parsed = JSON.parse(cleanText)
 
       // Validate and normalize the response
-      const relevant = Boolean(parsed.relevant)
+      const status = this.normalizeStatus(parsed.status, Boolean(parsed.relevant))
       const reason = String(parsed.reason || 'No reason provided').substring(0, 200)
       const confidence = this.normalizeConfidence(parsed.confidence)
 
-      return { relevant, reason, confidence }
+      return { status, reason, confidence }
     } catch (error) {
       // Log the actual response for debugging
       console.error('Failed to parse LLM judge response:', {
@@ -361,9 +366,9 @@ Rules:
         error: error instanceof Error ? error.message : String(error),
       })
 
-      // If parsing fails, default to not relevant (conservative)
+      // If parsing fails, default to NONE (conservative)
       return {
-        relevant: false,
+        status: 'NONE',
         reason: 'Failed to parse judge response',
         confidence: 'low',
       }
@@ -396,14 +401,14 @@ Rules:
 
         if (item) {
           results.push({
-            relevant: Boolean(item.relevant),
+            status: this.normalizeStatus(item.status, Boolean(item.relevant)),
             reason: String(item.reason || 'No reason provided').substring(0, 200),
             confidence: this.normalizeConfidence(item.confidence),
           })
         } else {
           // Missing result - default to not relevant
           results.push({
-            relevant: false,
+            status: 'NONE',
             reason: 'Missing result in batch response',
             confidence: 'low',
           })
@@ -415,7 +420,7 @@ Rules:
       console.error('Failed to parse batch response:', error)
       // Return default results for all inputs
       return Array(expectedCount).fill({
-        relevant: false,
+        status: 'NONE',
         reason: 'Failed to parse batch response',
         confidence: 'low',
       })
@@ -439,5 +444,21 @@ Rules:
    */
   isEnabled(): boolean {
     return envConfig.LLM_JUDGE_ENABLED && this.genAI !== null
+  }
+
+  /**
+   * Normalize status to valid enum
+   * Backwards compatibility: map boolean to FULL/NONE
+   */
+  private normalizeStatus(value: unknown, fallbackRelevant: boolean): 'FULL' | 'PARTIAL' | 'NONE' {
+    if (typeof value === 'string') {
+      const upper = value.toUpperCase()
+      if (upper === 'FULL' || upper === 'HIGH') return 'FULL'
+      if (upper === 'PARTIAL' || upper === 'MEDIUM') return 'PARTIAL'
+      if (upper === 'NONE' || upper === 'LOW') return 'NONE'
+    }
+
+    // Fallback for old prompt format or unclear response
+    return fallbackRelevant ? 'FULL' : 'NONE'
   }
 }

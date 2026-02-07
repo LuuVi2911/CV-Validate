@@ -24,8 +24,19 @@ export interface ExtractedRule {
 const PARAGRAPH_CLASSIFICATION_CUES = {
   REQUIREMENTS: ['must', 'required', 'minimum', 'you have', 'qualifications', 'requirements'],
   NICE_TO_HAVE: ['preferred', 'bonus', 'plus', 'nice to have', 'would be great'],
-  RESPONSIBILITIES: ['you will', 'responsibilities', 'role includes', 'in this role', 'you\'ll'],
-  BENEFITS: ['salary', 'benefits', 'wellness', 'lunch', 'healthcare', 'work-life', 'offer', 'contract', 'opportunity', 'potential'],
+  RESPONSIBILITIES: ['you will', 'responsibilities', 'role includes', 'in this role', "you'll"],
+  BENEFITS: [
+    'salary',
+    'benefits',
+    'wellness',
+    'lunch',
+    'healthcare',
+    'work-life',
+    'offer',
+    'contract',
+    'opportunity',
+    'potential',
+  ],
   PROCESS: ['recruitment process', 'interview', 'apply', 'deadline', 'rolling basis'],
   COMPANY: ['we are', 'about us', 'our culture', 'values', 'diversity', 'inclusion'],
 } as const
@@ -50,7 +61,7 @@ export class JdRuleExtractionService {
   constructor(
     private readonly jdRuleClassifier?: JdRuleClassifierService,
     private readonly geminiJdParser?: GeminiJdParserService,
-  ) { }
+  ) {}
 
   /**
    * Extract rules from JD text deterministically
@@ -111,7 +122,7 @@ export class JdRuleExtractionService {
             content: parsedRule.content,
             ruleType: parsedRule.category,
             paragraphType: this.mapRuleTypeToParagraphType(parsedRule.category),
-            ignored: false, // LLM already filters out noise
+            ignored: parsedRule.ignored || false, // Use flag from parser if present
             originalText: parsedRule.content,
             sourceParagraphType: this.mapRuleTypeToParagraphType(parsedRule.category),
             sourceParagraphIndex: index,

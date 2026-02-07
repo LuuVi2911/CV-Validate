@@ -4,7 +4,7 @@ import type { RuleType, RuleIntent } from 'src/generated/prisma/enums'
 
 @Injectable()
 export class JdRepo {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   async createJd(userId: string, title?: string) {
     return this.prisma.jobDescription.create({
@@ -50,17 +50,18 @@ export class JdRepo {
     })
   }
 
-  async createJdRule(jdId: string, ruleType: RuleType, content: string) {
+  async createJdRule(jdId: string, ruleType: RuleType, content: string, intent?: RuleIntent) {
     return this.prisma.jDRule.create({
       data: {
         jdId,
         ruleType,
         content,
+        intent,
       },
     })
   }
 
-  async createJdRules(rules: Array<{ jdId: string; ruleType: RuleType; content: string }>) {
+  async createJdRules(rules: Array<{ jdId: string; ruleType: RuleType; content: string; intent?: RuleIntent }>) {
     return this.prisma.jDRule.createMany({
       data: rules,
     })

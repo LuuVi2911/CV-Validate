@@ -32,9 +32,11 @@ const configSchema = z.object({
   LLM_JUDGE_BATCH_SIZE: z.coerce.number().int(),
 
   // Multi-mention aggregation (boost confidence when skill appears multiple times)
-  MULTI_MENTION_THRESHOLD: z.coerce.number().int().default(3),
-  MULTI_MENTION_HIGH_SIMILARITY: z.coerce.number().default(0.65),
-  DEDUP_SIMILARITY_THRESHOLD: z.coerce.number().default(0.95),
+  MULTI_MENTION_THRESHOLD: z.coerce.number().int(),
+  MULTI_MENTION_MEDIUM_THRESHOLD: z.coerce.number().int(),
+  MULTI_MENTION_HIGH_SIMILARITY: z.coerce.number(),
+  MULTI_MENTION_MEDIUM_SIMILARITY: z.coerce.number(),
+  DEDUP_SIMILARITY_THRESHOLD: z.coerce.number(),
 
   // CORS Configuration
   CORS_ORIGIN: z

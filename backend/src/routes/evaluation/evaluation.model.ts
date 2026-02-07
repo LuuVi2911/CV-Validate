@@ -90,7 +90,7 @@ export const ChunkMatchEvidenceSchema = z.object({
   judgeUnavailable: z.boolean(),
   judgeResult: z
     .object({
-      relevant: z.boolean(),
+      status: z.enum(['FULL', 'PARTIAL', 'NONE']),
       reason: z.string(),
       confidence: z.enum(['low', 'medium', 'high']).optional(),
     })

@@ -45,11 +45,14 @@ export class JdService {
         }
       }
 
-      // Persist rules and chunks
       const createdRules: Array<{ id: string; content: string }> = []
       for (let i = 0; i < extractedRules.length; i++) {
         const extractedRule = extractedRules[i]
-        const rule = await this.jdRepo.createJdRule(jd.id, extractedRule.ruleType, extractedRule.content)
+
+        // If rule is ignored (e.g. location, working style), explicitly set intent to INFORMATIONAL
+        const intent = extractedRule.ignored ? ('INFORMATIONAL' as any) : undefined
+
+        const rule = await this.jdRepo.createJdRule(jd.id, extractedRule.ruleType, extractedRule.content, intent)
         createdRules.push({ id: rule.id, content: rule.content })
 
         // Get chunks for this rule
