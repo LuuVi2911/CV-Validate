@@ -323,4 +323,20 @@ export class AuthService {
     })
     return { accessToken, refreshToken }
   }
+
+  // ==========================
+  // Get User By ID
+  // ==========================
+  async getUserById(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      omit: { password: true },
+    })
+
+    if (!user) {
+      throw new Error('User not found')
+    }
+
+    return user
+  }
 }

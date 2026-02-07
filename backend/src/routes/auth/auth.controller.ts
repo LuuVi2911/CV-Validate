@@ -1,7 +1,10 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, UnauthorizedException } from '@nestjs/common'
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, Res, UnauthorizedException } from '@nestjs/common'
+import { Response } from 'express'
 import { Auth } from 'src/shared/decorators/auth.decorator'
 import { AuthType } from 'src/shared/constants/auth.constant'
 import { AuthService } from './auth.service'
+import { ActiveUser } from 'src/shared/decorators/active.user.decorator'
+import type { AccessTokenPayload } from 'src/shared/types/jwt.type'
 import {
   RegisterBodyDTO,
   RegisterResponseDTO,
@@ -48,6 +51,14 @@ export class AuthController {
     }
   }
 
+  @Get('me')
+  @Auth([AuthType.Bearer])
+  @HttpCode(HttpStatus.OK)
+  async getCurrentUser(@ActiveUser() user: AccessTokenPayload) {
+    const userData = await this.authService.getUserById(user.userUuid)
+    return userData
+  }
+
   @Post('verify-email')
   @Auth([AuthType.None])
   @HttpCode(HttpStatus.OK)
@@ -85,9 +96,26 @@ export class AuthController {
   @Post('login')
   @Auth([AuthType.None])
   @HttpCode(HttpStatus.OK)
-  async login(@Body() body: LoginBodyDTO): Promise<LoginResponseDTO> {
+  async login(@Body() body: LoginBodyDTO, @Res({ passthrough: true }) res: Response) {
     try {
-      return await this.authService.login(body.email, body.password)
+      const { accessToken, refreshToken } = await this.authService.login(body.email, body.password)
+
+      // Set httpOnly cookies
+      res.cookie('accessToken', accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 15 * 60 * 1000, // 15 minutes
+      })
+
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      })
+
+      return { message: 'Login successful' }
     } catch (err) {
       if (err instanceof Error) {
         if (err.message === 'Email or password is incorrect') {
@@ -104,9 +132,33 @@ export class AuthController {
   @Post('refresh')
   @Auth([AuthType.None])
   @HttpCode(HttpStatus.OK)
-  async refresh(@Body() body: RefreshTokenBodyDTO): Promise<RefreshTokenResponseDTO> {
+  async refresh(@Res({ passthrough: true }) res: Response, @Body() body?: RefreshTokenBodyDTO) {
     try {
-      return await this.authService.refreshToken(body.refreshToken)
+      // Get refresh token from cookie or body (for backward compatibility)
+      const refreshToken = res.req.cookies?.refreshToken || body?.refreshToken
+
+      if (!refreshToken) {
+        throw new UnauthorizedException('Error.MissingRefreshToken')
+      }
+
+      const { accessToken, refreshToken: newRefreshToken } = await this.authService.refreshToken(refreshToken)
+
+      // Set new httpOnly cookies
+      res.cookie('accessToken', accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 15 * 60 * 1000,
+      })
+
+      res.cookie('refreshToken', newRefreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      })
+
+      return { message: 'Token refreshed successfully' }
     } catch (err) {
       if (err instanceof Error) {
         if (err.message === 'Refresh token already used') throw RefreshTokenAlreadyUsedException
@@ -121,8 +173,18 @@ export class AuthController {
   @Post('logout')
   @Auth([AuthType.None])
   @HttpCode(HttpStatus.OK)
-  async logout(@Body() body: RefreshTokenBodyDTO) {
-    return await this.authService.logout(body.refreshToken)
+  async logout(@Res({ passthrough: true }) res: Response, @Body() body?: RefreshTokenBodyDTO) {
+    const refreshToken = res.req.cookies?.refreshToken || body?.refreshToken
+
+    if (refreshToken) {
+      await this.authService.logout(refreshToken)
+    }
+
+    // Clear cookies
+    res.clearCookie('accessToken')
+    res.clearCookie('refreshToken')
+
+    return { message: 'Logged out successfully' }
   }
 
   @Post('forgot-password')

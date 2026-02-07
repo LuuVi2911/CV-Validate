@@ -20,7 +20,7 @@ const configSchema = z.object({
   GOOGLE_CLIENT_SECRET: z.string(),
   GOOGLE_REDIRECT_URI: z.string(),
   RESEND_API_KEY: z.string(),
-  // Evaluation configuration 
+  // Evaluation configuration
   GEMINI_API_KEY: z.string().optional(),
   EMBEDDING_MODEL: z.string(),
   EMBEDDING_DIM: z.coerce.number().int(),
@@ -33,11 +33,14 @@ const configSchema = z.object({
 
   // Multi-mention aggregation (boost confidence when skill appears multiple times)
   MULTI_MENTION_THRESHOLD: z.coerce.number().int().default(3),
-  MULTI_MENTION_HIGH_SIMILARITY: z.coerce.number().default(0.6),
+  MULTI_MENTION_HIGH_SIMILARITY: z.coerce.number().default(0.65),
   DEDUP_SIMILARITY_THRESHOLD: z.coerce.number().default(0.95),
 
   // CORS Configuration
-  CORS_ORIGIN: z.string().default('http://localhost:3000'),
+  CORS_ORIGIN: z
+    .string()
+    .default('http://localhost:3000')
+    .transform((val) => val.split(',').map((origin) => origin.trim())),
 
   // Rate Limiting
   RATE_LIMIT_SHORT_TTL: z.coerce.number().int().default(60000), // 1 minute
